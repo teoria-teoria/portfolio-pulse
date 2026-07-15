@@ -284,9 +284,8 @@ async function loadPrices() {
     setStatus(stalenessLabel() + ". updated " + new Date().toLocaleTimeString("en-US"));
   }
 
-  // layer news on top once prices are in.
+  // layer mover news on top once prices are in.
   if (typeof loadMoverNews === "function") loadMoverNews();
-  if (typeof loadWorthALook === "function") loadWorthALook();
 }
 
 // used after adding or editing a single holding, so we do not refetch the whole
@@ -312,6 +311,7 @@ refreshBtn.addEventListener("click", () => {
   state.quotes = {};
   render();
   loadPrices();
+  if (typeof loadWorthALook === "function") loadWorthALook();
 });
 
 // ---- boot -----------------------------------------------------------------
@@ -321,4 +321,5 @@ refreshBtn.addEventListener("click", () => {
 window.addEventListener("load", () => {
   render();
   loadPrices();
+  if (typeof loadWorthALook === "function") loadWorthALook();
 });

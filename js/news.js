@@ -89,7 +89,95 @@ function renderMoverNews() {
   }
 }
 
+// ---- worth a look ---------------------------------------------------------
+
+// three fixed interest tags. finnhub cannot filter by a custom theme, so the
+// matching happens here in js against the headline and summary text.
+const INTEREST_TAGS = [
+  {
+    label: "qsr",
+    keywords: ["qsr", "quick service", "fast food", "restaurant", "restaurants",
+      "drive-thru", "drive thru", "chipotle", "mcdonald", "starbucks", "yum brands",
+      "restaurant brands", "wingstop", "shake shack"]
+  },
+  {
+    label: "tech / ai",
+    keywords: ["ai", "artificial intelligence", "machine learning", "generative ai",
+      "semiconductor", "semiconductors", "chip", "chips", "gpu", "gpus", "nvidia",
+      "openai", "llm", "data center", "data centers"]
+  },
+  {
+    label: "edge computing",
+    keywords: ["edge computing", "edge ai", "edge network", "iot", "internet of things",
+      "5g", "cdn", "content delivery", "cloudflare", "fastly", "low latency"]
+  }
+];
+
+// precompile a word-boundary regex per keyword so "ai" matches the standalone
+// word and not "email" or "chair".
+const COMPILED_TAGS = INTEREST_TAGS.map((tag) => ({
+  label: tag.label,
+  patterns: tag.keywords.map((kw) => new RegExp("\\b" + escapeRegex(kw) + "\\b", "i"))
+}));
+
+function matchTag(text) {
+  for (const tag of COMPILED_TAGS) {
+    if (tag.patterns.some((re) => re.test(text))) return tag.label;
+  }
+  return null;
+}
+
+const WAL_MAX = 8;
+
+async function loadWorthALook() {
+  const container = document.getElementById("worth-a-look");
+  container.innerHTML = '<p class="empty">scanning market news...</p>';
+
+  let items;
+  try {
+    items = await fetchGeneralNews();
+  } catch (e) {
+    container.innerHTML = `<p class="empty">could not load market news. ${escapeHtml(e.message)}</p>`;
+    return;
+  }
+
+  const matched = [];
+  for (const n of items || []) {
+    if (!n || !n.headline || !n.url) continue;
+    const tag = matchTag(n.headline + " " + (n.summary || ""));
+    if (!tag) continue;
+    matched.push({ tag, headline: n.headline, url: n.url, source: n.source || "" });
+    if (matched.length >= WAL_MAX) break;
+  }
+
+  renderWorthALook(matched);
+}
+
+function renderWorthALook(matched) {
+  const container = document.getElementById("worth-a-look");
+  if (matched.length === 0) {
+    container.innerHTML = '<p class="empty">nothing in today\'s feed matched the interest tags.</p>';
+    return;
+  }
+  container.innerHTML = matched
+    .map(
+      (m) => `
+      <div class="wal-item">
+        <span class="wal-tag">${escapeHtml(m.tag)}</span>
+        <div class="wal-body">
+          <a href="${m.url}" target="_blank" rel="noopener">${escapeHtml(m.headline)}</a>
+          ${m.source ? `<div class="src">${escapeHtml(m.source)}</div>` : ""}
+        </div>
+      </div>`
+    )
+    .join("");
+}
+
 // ---- helpers --------------------------------------------------------------
+
+function escapeRegex(str) {
+  return str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
 
 function escapeHtml(str) {
   return String(str)
