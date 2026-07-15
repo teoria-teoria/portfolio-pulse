@@ -198,6 +198,7 @@ main {
 .table-scroll { overflow-x: auto; }
 .holdings {
   width: 100%;
+  min-width: 620px; /* below this the table scrolls inside .table-scroll rather than crushing columns */
   border-collapse: collapse;
   font-size: 0.92rem;
   margin-top: 1.25rem;
