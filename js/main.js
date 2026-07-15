@@ -316,5 +316,9 @@ refreshBtn.addEventListener("click", () => {
 
 // ---- boot -----------------------------------------------------------------
 
-render();
-loadPrices();
+// wait for load so the news and projection layers are defined before we call
+// into them from the price load.
+window.addEventListener("load", () => {
+  render();
+  loadPrices();
+});
