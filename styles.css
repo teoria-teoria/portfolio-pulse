@@ -99,6 +99,9 @@ main {
   margin-top: 0.15rem;
 }
 .summary-change { font-size: 1rem; margin-top: 0.2rem; color: var(--muted); }
+.summary-head { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
+.btn-sm { padding: 0.3rem 0.75rem; font-size: 0.82rem; }
+.btn-sm:disabled { opacity: 0.5; cursor: default; }
 .summary-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);

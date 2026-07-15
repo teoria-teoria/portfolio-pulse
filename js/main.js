@@ -91,8 +91,11 @@ function renderTable() {
 function renderSummary() {
   const totalCost = state.holdings.reduce((sum, h) => sum + costTotal(h), 0);
 
-  // only count value/gain for holdings that have a quote in yet.
+  // only count value/gain for holdings that have a quote in yet. cost for the
+  // gain figure tracks the same priced set so value, cost, and gain reconcile
+  // even when one ticker has no price.
   let totalValue = 0;
+  let pricedCost = 0;
   let priced = false;
   let dayChange = 0;
   for (const h of state.holdings) {
@@ -100,6 +103,7 @@ function renderSummary() {
     if (mv !== null) {
       priced = true;
       totalValue += mv;
+      pricedCost += costTotal(h);
       const q = state.quotes[h.ticker];
       // day change in dollars: shares * (current - previous close)
       if (typeof q.pc === "number") dayChange += h.shares * (q.c - q.pc);
@@ -121,8 +125,8 @@ function renderSummary() {
     return;
   }
 
-  const totalGain = totalValue - totalCost;
-  const gainPct = totalCost > 0 ? (totalGain / totalCost) * 100 : 0;
+  const totalGain = totalValue - pricedCost;
+  const gainPct = pricedCost > 0 ? (totalGain / pricedCost) * 100 : 0;
 
   valueEl.textContent = fmtMoney(totalValue);
   changeEl.innerHTML = `<span class="${moveClass(totalGain)}">${fmtSignedMoney(totalGain)} (${fmtPct(gainPct)})</span> all time`;
@@ -229,8 +233,88 @@ document.querySelectorAll(".tab").forEach((tab) => {
   });
 });
 
+// ---- live prices ----------------------------------------------------------
+
+const refreshBtn = document.getElementById("refresh-btn");
+let loading = false;
+
+function uniqueTickers() {
+  return [...new Set(state.holdings.map((h) => h.ticker))];
+}
+
+function stalenessLabel() {
+  return isMarketLive() ? "prices live" : "prices as of last close";
+}
+
+async function loadPrices() {
+  const tickers = uniqueTickers();
+  if (tickers.length === 0) {
+    setStatus("");
+    return;
+  }
+  if (loading) return;
+  loading = true;
+  refreshBtn.disabled = true;
+  setStatus("loading prices...");
+
+  const results = await Promise.allSettled(tickers.map((t) => fetchQuote(t)));
+  const failed = [];
+  results.forEach((r, i) => {
+    const ticker = tickers[i];
+    // finnhub returns c:0 for an unknown symbol. treat that as a bad ticker.
+    if (r.status === "fulfilled" && r.value && typeof r.value.c === "number" && r.value.c > 0) {
+      state.quotes[ticker] = r.value;
+    } else {
+      failed.push(ticker);
+    }
+  });
+
+  loading = false;
+  refreshBtn.disabled = false;
+  render();
+
+  if (failed.length === tickers.length) {
+    const reason = results.find((r) => r.status === "rejected");
+    setStatus(reason ? reason.reason.message : "could not load any prices. check the tickers.", true);
+    return;
+  }
+  if (failed.length) {
+    setStatus("no price for: " + failed.join(", ") + ". " + stalenessLabel() + ".", true);
+  } else {
+    setStatus(stalenessLabel() + ". updated " + new Date().toLocaleTimeString("en-US"));
+  }
+
+  // layer news on top once prices are in.
+  if (typeof loadMoverNews === "function") loadMoverNews();
+  if (typeof loadWorthALook === "function") loadWorthALook();
+}
+
+// used after adding or editing a single holding, so we do not refetch the whole
+// portfolio for one new ticker.
+async function refreshTicker(ticker) {
+  try {
+    const q = await fetchQuote(ticker);
+    if (q && typeof q.c === "number" && q.c > 0) {
+      state.quotes[ticker] = q;
+      render();
+      setStatus(stalenessLabel() + ". updated " + new Date().toLocaleTimeString("en-US"));
+      if (typeof loadMoverNews === "function") loadMoverNews();
+    } else {
+      setStatus("no price found for " + ticker + ". double check the ticker.", true);
+    }
+  } catch (e) {
+    setStatus(e.message, true);
+  }
+}
+
+refreshBtn.addEventListener("click", () => {
+  // clear cached quotes so refresh actually refetches.
+  state.quotes = {};
+  render();
+  loadPrices();
+});
+
 // ---- boot -----------------------------------------------------------------
 
 render();
-// price and news loading is kicked off by the price layer once it is loaded.
-if (typeof loadPrices === "function") loadPrices();
+loadPrices();
