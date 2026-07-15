@@ -46,6 +46,13 @@
           </div>
         </div>
         <div class="status-line" id="status-line"></div>
+        <div class="key-bar" id="key-bar" hidden>
+          <span class="key-note">enter a finnhub key to load live data. it stays in this browser only, never sent anywhere but finnhub.</span>
+          <div class="key-row">
+            <input type="text" id="key-input" placeholder="finnhub api key" autocomplete="off">
+            <button type="button" id="key-save" class="btn btn-primary btn-sm">save key</button>
+          </div>
+        </div>
       </section>
 
       <section class="panel" aria-label="add a holding">

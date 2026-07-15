@@ -314,12 +314,45 @@ refreshBtn.addEventListener("click", () => {
   if (typeof loadWorthALook === "function") loadWorthALook();
 });
 
+// ---- api key bar ----------------------------------------------------------
+
+const keyBar = document.getElementById("key-bar");
+const keyInput = document.getElementById("key-input");
+const keySave = document.getElementById("key-save");
+
+function loadLiveData() {
+  render();
+  loadPrices();
+  if (typeof loadWorthALook === "function") loadWorthALook();
+}
+
+function refreshKeyBar() {
+  const missing = !hasApiKey();
+  keyBar.hidden = !missing;
+  if (missing) {
+    setStatus("no finnhub key set. add one below to load live prices and news.", true);
+  }
+  return !missing;
+}
+
+keySave.addEventListener("click", () => {
+  const val = keyInput.value.trim();
+  if (!val) return;
+  localStorage.setItem("pp:finnhub-key", val);
+  keyInput.value = "";
+  keyBar.hidden = true;
+  setStatus("");
+  loadLiveData();
+});
+
 // ---- boot -----------------------------------------------------------------
 
 // wait for load so the news and projection layers are defined before we call
 // into them from the price load.
 window.addEventListener("load", () => {
-  render();
-  loadPrices();
-  if (typeof loadWorthALook === "function") loadWorthALook();
+  if (refreshKeyBar()) {
+    loadLiveData();
+  } else {
+    render(); // draw the shell and any saved holdings even without a key
+  }
 });

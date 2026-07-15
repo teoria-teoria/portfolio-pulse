@@ -129,6 +129,20 @@ main {
   min-height: 1.2em;
 }
 .status-line.error { color: var(--down); }
+.key-bar { margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--line); }
+.key-note { display: block; font-size: 0.85rem; color: var(--muted); margin-bottom: 0.6rem; }
+.key-row { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+.key-row input {
+  font-family: inherit;
+  font-size: 0.9rem;
+  padding: 0.5rem 0.6rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  outline: none;
+  width: 20rem;
+  max-width: 100%;
+}
+.key-row input:focus { border-color: var(--accent); box-shadow: 0 0 0 2px rgba(27,82,153,0.12); }
 
 /* value colors */
 .up { color: var(--up); }
