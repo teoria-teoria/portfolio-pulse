@@ -24,7 +24,7 @@ c. news on big moves. auto-pull recent headlines for any holding moving 2 percen
 
 d. a "worth a look" section. cross-references daily market news against 3 tagged interest areas (qsr, tech and ai, edge computing). labeled clearly as informational surfacing, not advice.
 
-e. a projection tab. three adjustable inputs. starting balance, timeline length, and a monthly growth rate percentage that can be negative. renders a projected growth chart over the chosen timeline.
+e. a unified performance graph. actual price history for the selected timeframe fills most of the chart, then the same trend extends into a projection covering an equivalent forward window (a week of history projects a week ahead, a month projects a month ahead). replaces the earlier separate projection-tab idea, which didn't need to be its own view.
 
 ## what i don't know yet
 
