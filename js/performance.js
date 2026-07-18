@@ -87,6 +87,15 @@ function compactMoney(n) {
   return "$" + Math.round(n);
 }
 
+// y-axis labels. when the whole plot sits in a narrow band (a small daily move
+// on a modest balance), compact "$3.3k" repeats on every gridline and reads
+// like a bug. show whole dollars there so the gridlines stay distinct, and only
+// fall back to compact for large balances where the short form actually helps.
+function axisMoney(v, max) {
+  if (max < 100000) return "$" + Math.round(v).toLocaleString("en-US");
+  return compactMoney(v);
+}
+
 function drawPerformance() {
   const series = buildSeries(perfTimeframe);
 
@@ -150,7 +159,7 @@ function drawPerformance() {
     ctx.stroke();
     ctx.fillStyle = textColor;
     ctx.textAlign = "right";
-    ctx.fillText(compactMoney(val), padL - 8, y);
+    ctx.fillText(axisMoney(val, max), padL - 8, y);
   }
 
   // subtle shading over the projected region so it reads as "ahead"
