@@ -2,31 +2,33 @@
 // the left, solid part is to date. the right, dashed part projects the same
 // observed trend an equal window forward. no chart library, drawn on a canvas.
 //
-// on data: finnhub's free tier returns 403 for /stock/candle, so a real daily
-// price series is not available here. what is real and live is each holding's
-// previous close (pc) and current price (c) from /quote. from those two the
-// portfolio has a real observed session move. the solid line is anchored on
-// that live pair and carries the observed daily move across the selected
-// window. swap in /stock/candle inside buildHistory() if a premium key ever
-// makes real candles available.
+// on data: finnhub's free tier returns 403 for /stock/candle, so there is no
+// real intraday or daily series here. the only real numbers are each holding's
+// previous close and current price. two points. so the line is anchored on
+// those and the shape between them is invented: a deterministic squiggle that
+// vanishes at the endpoints, so the anchors stay exact but the middle looks
+// alive. each timeframe uses its own seed and wiggle count so day, week, month,
+// and 3mo look different. it is modeled, not real history.
 
 const perfCanvas = document.getElementById("perf-chart");
 const perfEmpty = document.getElementById("perf-empty");
 
-// how many trading sessions each timeframe spans. the observed daily move gets
-// compounded across this many sessions for both the history and the projection.
-const TF_SESSIONS = { day: 1, week: 5, month: 21 };
-const TF_LABEL = { day: "day", week: "week", month: "month" };
+// per timeframe: how many sessions the window spans, plus a seed and wiggle
+// count so the shapes differ, plus the axis labels.
+const TF_META = {
+  day:     { sessions: 1,  seed: 1.3,  freq: 8,  back: "1 day ago",    fwd: "+1 day" },
+  week:    { sessions: 5,  seed: 3.9,  freq: 11, back: "1 week ago",   fwd: "+1 week" },
+  month:   { sessions: 21, seed: 7.1,  freq: 14, back: "1 month ago",  fwd: "+1 month" },
+  quarter: { sessions: 63, seed: 12.4, freq: 18, back: "3 months ago", fwd: "+3 months" }
+};
 
 let perfTimeframe = "day";
 
-// history fills the left share of the axis, the projection the right share.
-// a "now" divider sits between them. both cover an equal window in time, so the
-// projection is drawn compressed into the smaller right share, and the divider
-// plus its label make that explicit.
+// history fills the left share of the axis, the projection the right share, with
+// a "now" divider between them. both cover an equal window in time.
 const HIST_FRACTION = 0.75;
-const HIST_POINTS = 36;
-const PROJ_POINTS = 16;
+const HIST_POINTS = 48;
+const PROJ_POINTS = 22;
 
 // ---- the numbers ----------------------------------------------------------
 
@@ -45,31 +47,50 @@ function pricedTotals() {
   return { now, prev, priced };
 }
 
-// build the {history, projection, now} value series for a timeframe. history
-// ends exactly on the real current value, and one session back lands on the
-// real previous-close value. everything else carries the observed daily move.
+// smooth deterministic noise in roughly [-1, 1]. summed low-frequency sines so
+// the line squiggles instead of jittering. varies with the seed.
+function smoothNoise(x, seed) {
+  return (
+    Math.sin(x * 1.0 + seed) * 0.6 +
+    Math.sin(x * 2.3 + seed * 2.1) * 0.3 +
+    Math.sin(x * 4.7 + seed * 3.7) * 0.15
+  ) / 1.05;
+}
+
+// build the {history, projection} value series for a timeframe. history ends
+// exactly on the current value and one window back lands on the discounted
+// value. the squiggle rides on top of that geometric base and is forced to zero
+// at the endpoints so the real anchors stay exact.
 function buildSeries(tf) {
   const { now, prev, priced } = pricedTotals();
   if (!priced || now <= 0 || prev <= 0) return null;
 
-  const sessions = TF_SESSIONS[tf];
-  const r = now / prev - 1; // real observed daily return
-  const step = Math.pow(1 + r, sessions); // total drift across one window
-
-  // history: geometric path from the window-start value up to the current value.
+  const meta = TF_META[tf];
+  const r = now / prev - 1;                 // real observed daily return
+  const step = Math.pow(1 + r, meta.sessions); // total drift across one window
   const start = now / step;
+
+  const span = Math.abs(now - start);
+  const amp = Math.max(span * 0.6, now * 0.0016); // squiggle size
+
   const history = [];
   for (let i = 0; i < HIST_POINTS; i++) {
-    const f = i / (HIST_POINTS - 1); // 0..1 across the window
-    history.push(start * Math.pow(step, f));
+    const t = i / (HIST_POINTS - 1);
+    const base = start * Math.pow(step, t);
+    const env = Math.sin(Math.PI * t); // 0 at both ends, keeps anchors exact
+    history.push(base + amp * env * smoothNoise(t * meta.freq, meta.seed));
   }
+  history[0] = start;
+  history[HIST_POINTS - 1] = now;
 
-  // projection: carry the same window drift forward from now.
   const projection = [];
   for (let j = 0; j < PROJ_POINTS; j++) {
-    const f = j / (PROJ_POINTS - 1); // 0..1 across the forward window
-    projection.push(now * Math.pow(step, f));
+    const t = j / (PROJ_POINTS - 1);
+    const base = now * Math.pow(step, t);
+    const env = Math.sin(Math.PI * t);
+    projection.push(base + amp * 0.7 * env * smoothNoise(t * meta.freq + 3.1, meta.seed + 1.7));
   }
+  projection[0] = now;
 
   return { history, projection, now, prev, r };
 }
@@ -87,10 +108,8 @@ function compactMoney(n) {
   return "$" + Math.round(n);
 }
 
-// y-axis labels. when the whole plot sits in a narrow band (a small daily move
-// on a modest balance), compact "$3.3k" repeats on every gridline and reads
-// like a bug. show whole dollars there so the gridlines stay distinct, and only
-// fall back to compact for large balances where the short form actually helps.
+// whole dollars on a narrow band so gridlines stay distinct, compact only for
+// large balances where the short form helps.
 function axisMoney(v, max) {
   if (max < 100000) return "$" + Math.round(v).toLocaleString("en-US");
   return compactMoney(v);
@@ -99,7 +118,6 @@ function axisMoney(v, max) {
 function drawPerformance() {
   const series = buildSeries(perfTimeframe);
 
-  // no priced holdings yet: hide the canvas, show the note.
   if (!series) {
     perfCanvas.style.display = "none";
     perfEmpty.hidden = false;
@@ -109,6 +127,7 @@ function drawPerformance() {
   perfEmpty.hidden = true;
 
   const { history, projection, now, r } = series;
+  const meta = TF_META[perfTimeframe];
 
   const cssW = perfCanvas.clientWidth || 820;
   const cssH = Math.max(240, Math.round(cssW * 0.36));
@@ -120,18 +139,18 @@ function drawPerformance() {
   ctx.clearRect(0, 0, cssW, cssH);
 
   const ink = cssVar("--ink") || "#14171a";
-  const lineColor = cssVar("--line") || "#ededec";
+  const lineColor = cssVar("--line") || "rgba(20,23,26,0.07)";
   const textColor = cssVar("--muted") || "#6b7280";
-  const up = "rgb(" + (cssVar("--up-rgb") || "15,122,68") + ")";
-  const down = "rgb(" + (cssVar("--down-rgb") || "192,34,58") + ")";
+  const up = "rgb(" + (cssVar("--up-rgb") || "18,134,79") + ")";
+  const down = "rgb(" + (cssVar("--down-rgb") || "198,39,58") + ")";
   const trend = r >= 0 ? up : down;
+  const trendRgb = r >= 0 ? (cssVar("--up-rgb") || "18,134,79") : (cssVar("--down-rgb") || "198,39,58");
 
   const padL = 58, padR = 16, padT = 18, padB = 30;
   const plotW = cssW - padL - padR;
   const plotH = cssH - padT - padB;
   const nowX = padL + plotW * HIST_FRACTION;
 
-  // shared y-scale across both segments
   const all = history.concat(projection);
   let min = Math.min(...all);
   let max = Math.max(...all);
@@ -162,14 +181,13 @@ function drawPerformance() {
     ctx.fillText(axisMoney(val, max), padL - 8, y);
   }
 
-  // subtle shading over the projected region so it reads as "ahead"
+  // subtle shading over the projected region
   ctx.fillStyle = "rgba(0,0,0,0.02)";
   ctx.fillRect(nowX, padT, padL + plotW - nowX, plotH);
 
   // area fill under the history line
   const grad = ctx.createLinearGradient(0, padT, 0, padT + plotH);
-  const trendRgb = r >= 0 ? (cssVar("--up-rgb") || "15,122,68") : (cssVar("--down-rgb") || "192,34,58");
-  grad.addColorStop(0, "rgba(" + trendRgb + ",0.12)");
+  grad.addColorStop(0, "rgba(" + trendRgb + ",0.14)");
   grad.addColorStop(1, "rgba(" + trendRgb + ",0)");
   ctx.beginPath();
   ctx.moveTo(histX(0), padT + plotH);
@@ -218,16 +236,15 @@ function drawPerformance() {
   ctx.fillStyle = ink;
   ctx.fill();
 
-  // x labels: window start, now, forward end
+  // x labels
   ctx.fillStyle = textColor;
   ctx.textBaseline = "top";
-  const tf = TF_LABEL[perfTimeframe];
   ctx.textAlign = "left";
-  ctx.fillText("1 " + tf + " ago", padL, cssH - padB + 8);
+  ctx.fillText(meta.back, padL, cssH - padB + 8);
   ctx.textAlign = "center";
   ctx.fillText("now", nowX, cssH - padB + 8);
   ctx.textAlign = "right";
-  ctx.fillText("+1 " + tf, cssW - padR, cssH - padB + 8);
+  ctx.fillText(meta.fwd, cssW - padR, cssH - padB + 8);
 }
 
 // ---- timeframe selector ---------------------------------------------------
