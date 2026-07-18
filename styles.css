@@ -296,7 +296,6 @@ main {
   margin-bottom: 0.5rem;
 }
 .mover-blurb {
-  display: block;
   margin: 0 0 0.6rem;
   padding: 0.55rem 0.7rem;
   background: var(--card);
