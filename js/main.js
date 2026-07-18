@@ -48,7 +48,7 @@ function renderRow(h) {
 
   const priceCell = hasQuote ? fmtMoney(q.c) : '<span class="price-loading">--</span>';
   const dayCell = hasQuote
-    ? `<span class="${moveClass(q.dp)}">${fmtPct(q.dp)}</span>`
+    ? `<span class="move-chip" style="${moveTintStyle(q.dp)}">${fmtPct(q.dp)}</span>`
     : '<span class="price-loading">--</span>';
   const valueCell = mv === null ? '<span class="price-loading">--</span>' : fmtMoney(mv);
   const gainCell = g === null

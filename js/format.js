@@ -25,6 +25,23 @@ function moveClass(n) {
   return "";
 }
 
+// magnitude-scaled tint for a daily percent move. the background alpha grows
+// with the size of the move off the real finnhub dp. a +0.3% move is a pale
+// tint, a +6% move is fully saturated. same on the downside in red. returns an
+// inline style string for a .move-chip. this replaces the old flat badge.
+const MOVE_FULL_AT = 6; // percent that reads as fully saturated
+
+function moveTintStyle(dp) {
+  if (dp === null || dp === undefined || Number.isNaN(dp)) return "";
+  if (dp === 0) return "color: var(--muted);";
+  const intensity = Math.min(Math.abs(dp) / MOVE_FULL_AT, 1); // 0..1
+  const rgb = dp > 0 ? "var(--up-rgb)" : "var(--down-rgb)";
+  const alpha = (0.08 + intensity * 0.84).toFixed(3); // barely-there .08 up to .92
+  // once the fill is saturated enough, flip the text to white so it stays legible.
+  const fg = intensity > 0.5 ? "#ffffff" : (dp > 0 ? "var(--up)" : "var(--down)");
+  return `background: rgba(${rgb}, ${alpha}); color: ${fg};`;
+}
+
 // yyyy-mm-dd for a date in america/new_york. en-CA gives the iso-ish order.
 function isoDateET(date) {
   return new Intl.DateTimeFormat("en-CA", {
