@@ -1,25 +1,35 @@
 :root {
-  /* off-white ground, white cards, soft lines. minimal chrome. */
-  --bg: #fbfbfa;
+  /* base stays light. color is reserved for data, not backgrounds. */
+  --bg: #f7f7f5;
   --card: #ffffff;
   --ink: #14171a;
   --muted: #6b7280;
   --faint: #9aa1ab;
-  --line: #ededec;
-  --line-soft: #f2f2f1;
+  --line: rgba(20, 23, 26, 0.07);
 
-  /* one accent, used sparingly for interactive bits only */
-  --accent: #3a5bd9;
+  /* one brand anchor: forest green. change --accent and its pair to reskin. */
+  --accent: #16794c;
+  --accent-deep: #0d5a37;
+  --accent-pale: #e6f3ec;
+  --accent-rgb: 22, 121, 76;
 
-  /* semantic data colors. green up, red down. the magnitude tint scales off these. */
-  --up: #0f7a44;
-  --up-rgb: 15, 122, 68;
-  --down: #c0223a;
-  --down-rgb: 192, 34, 58;
+  /* data hues. green up, red down, blue neutral. deep + pale drive the gradients. */
+  --up: #12864f;
+  --up-deep: #0b5d37;
+  --up-rgb: 18, 134, 79;
+  --down: #c62740;
+  --down-deep: #8f1528;
+  --down-rgb: 198, 39, 64;
+  --neutral: #2f6df6;
+  --neutral-deep: #1e49b8;
+  --neutral-rgb: 47, 109, 246;
 
-  --radius: 10px;
+  --radius: 14px;
+  --shadow: 0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
+  --shadow-hover: 0 6px 18px rgba(0, 0, 0, 0.09), 0 2px 6px rgba(0, 0, 0, 0.05);
+
   --mono: ui-monospace, "SF Mono", "Menlo", "Consolas", monospace;
-  --sans: system-ui, -apple-system, "Segoe UI", sans-serif;
+  --sans: "Instrument Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
 }
 
 * { box-sizing: border-box; }
@@ -34,71 +44,49 @@ body {
 }
 
 main {
-  max-width: 900px;
+  max-width: 920px;
   margin: 0 auto;
-  padding: 0 1.5rem 5rem;
+  padding: 0 1.5rem 6rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.75rem;
 }
 
 /* top bar */
 .topbar {
-  max-width: 900px;
+  max-width: 920px;
   margin: 0 auto;
-  padding: 3rem 1.5rem 2rem;
+  padding: 3.5rem 1.5rem 2.25rem;
 }
 .brand h1 {
-  font-size: 1.15rem;
+  font-size: 1.2rem;
   font-weight: 600;
   letter-spacing: -0.01em;
   margin: 0;
 }
 .tagline {
-  margin: 0.35rem 0 0;
+  margin: 0.4rem 0 0;
   color: var(--muted);
   font-size: 0.9rem;
 }
 
-/* performance graph */
-.perf-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-  margin-bottom: 1.25rem;
-}
-.perf-head h2 { margin: 0; }
-.tf-select { display: flex; gap: 0.25rem; }
-.tf-btn {
-  font-family: inherit;
-  font-size: 0.82rem;
-  color: var(--muted);
-  background: none;
-  border: 1px solid transparent;
-  padding: 0.3rem 0.7rem;
-  border-radius: 999px;
-  cursor: pointer;
-}
-.tf-btn:hover { color: var(--ink); }
-.tf-btn.is-active { color: var(--ink); border-color: var(--line); background: var(--bg); font-weight: 550; }
-.chart-wrap { width: 100%; }
-#perf-chart { width: 100%; height: auto; display: block; }
-
-/* cards: consistent radius, soft border, no shadow */
+/* cards: one radius, soft shadow, no border. generous padding. */
 .summary,
 .panel {
   background: var(--card);
-  border: 1px solid var(--line);
   border-radius: var(--radius);
-  padding: 2rem;
-  margin-bottom: 1.5rem;
+  box-shadow: var(--shadow);
+  padding: 2.25rem;
 }
 
-/* summary / hero */
+/* section labels: small, uppercase, letter-spaced, muted */
 .summary-label,
 .stat-label {
   color: var(--faint);
-  font-size: 0.75rem;
+  font-size: 0.72rem;
   text-transform: uppercase;
-  letter-spacing: 0.07em;
+  letter-spacing: 0.08em;
+  font-weight: 600;
 }
 .summary-head {
   display: flex;
@@ -107,18 +95,18 @@ main {
   gap: 1rem;
 }
 
-/* the hero figure. big and bold, the primary visual element on the page. */
+/* the hero figure. big, bold, tight. the primary visual weight on the page. */
 .summary-value {
-  font-size: clamp(3.25rem, 8vw, 5rem);
+  font-size: clamp(3.5rem, 7vw, 4.5rem); /* 56px to 72px */
   font-weight: 700;
-  letter-spacing: -0.035em;
+  letter-spacing: -0.02em;
   line-height: 1.02;
   margin-top: 0.5rem;
   font-variant-numeric: tabular-nums;
 }
 .summary-change {
   font-size: 1rem;
-  margin-top: 0.6rem;
+  margin-top: 0.65rem;
   color: var(--muted);
   font-variant-numeric: tabular-nums;
 }
@@ -126,16 +114,23 @@ main {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 1.5rem;
-  margin-top: 2rem;
-  padding-top: 1.75rem;
-  border-top: 1px solid var(--line-soft);
+  margin-top: 2.25rem;
+  padding-top: 2rem;
+  border-top: 1px solid var(--line);
 }
 .stat-value {
-  font-size: 1.35rem;
-  font-weight: 650;
+  font-size: 1.4rem;
+  font-weight: 600;
   letter-spacing: -0.01em;
-  margin-top: 0.35rem;
+  margin-top: 0.4rem;
   font-variant-numeric: tabular-nums;
+}
+/* total gain/loss reads as a strong secondary figure under the hero */
+.stat-value-lg {
+  font-size: 2.5rem; /* 40px */
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  margin-top: 0.3rem;
 }
 .status-line {
   margin-top: 1.5rem;
@@ -146,33 +141,33 @@ main {
 .status-line.error { color: var(--down); }
 
 /* runtime key entry */
-.key-bar { margin-top: 1.25rem; padding-top: 1.25rem; border-top: 1px solid var(--line-soft); }
+.key-bar { margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid var(--line); }
 .key-note { display: block; font-size: 0.85rem; color: var(--muted); margin-bottom: 0.6rem; }
 .key-row { display: flex; gap: 0.5rem; flex-wrap: wrap; }
 .key-row input {
   font-family: inherit;
   font-size: 0.9rem;
-  padding: 0.55rem 0.7rem;
+  padding: 0.6rem 0.75rem;
   border: 1px solid var(--line);
-  border-radius: var(--radius);
+  border-radius: 10px;
   outline: none;
   width: 20rem;
   max-width: 100%;
   background: var(--card);
   color: var(--ink);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
-.key-row input:focus { border-color: var(--accent); }
+.key-row input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-pale); }
 
 /* plain value colors for text figures (gain/loss dollars) */
 .up { color: var(--up); }
 .down { color: var(--down); }
 
-/* the magnitude chip. background alpha scales with the size of the move, set
-   inline from js off the real finnhub dp. this is the green/red encoding,
-   in place of a flat badge. */
+/* the magnitude chip. a real 135deg gradient whose depth scales with the move.
+   the gradient string is built in format.js off the live finnhub dp. */
 .move-chip {
   display: inline-block;
-  padding: 0.2rem 0.5rem;
+  padding: 0.25rem 0.6rem;
   border-radius: 999px;
   font-variant-numeric: tabular-nums;
   font-weight: 600;
@@ -182,16 +177,47 @@ main {
 
 /* panels */
 .panel h2 {
-  font-size: 0.95rem;
+  font-size: 0.98rem;
   font-weight: 600;
   letter-spacing: 0.01em;
   margin: 0 0 1.25rem;
 }
+.panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+}
+.panel-head h2 { margin: 0; }
 .panel-note {
   margin: -0.75rem 0 1.5rem;
   color: var(--muted);
   font-size: 0.85rem;
 }
+
+/* buttons: accent-anchored primary, soft ghost, real hover states */
+.btn {
+  font-family: inherit;
+  font-size: 0.9rem;
+  font-weight: 500;
+  padding: 0.6rem 1.2rem;
+  border-radius: 10px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease, transform 0.1s ease;
+}
+.btn-primary {
+  background: linear-gradient(135deg, var(--accent), var(--accent-deep));
+  color: #fff;
+  box-shadow: 0 1px 2px rgba(var(--accent-rgb), 0.35);
+}
+.btn-primary:hover { box-shadow: 0 4px 12px rgba(var(--accent-rgb), 0.32); transform: translateY(-1px); }
+.btn-primary:active { transform: translateY(0); }
+.btn-ghost { background: var(--card); color: var(--muted); border-color: var(--line); }
+.btn-ghost:hover { color: var(--ink); border-color: var(--faint); background: var(--bg); }
+.btn-sm { padding: 0.4rem 0.85rem; font-size: 0.82rem; }
+.btn-sm:disabled { opacity: 0.5; cursor: default; }
 
 /* add-holding form */
 .holding-form {
@@ -201,7 +227,7 @@ main {
   flex-wrap: wrap;
   padding-bottom: 1.75rem;
   margin-bottom: 0.5rem;
-  border-bottom: 1px solid var(--line-soft);
+  border-bottom: 1px solid var(--line);
 }
 .field { display: flex; flex-direction: column; gap: 0.4rem; }
 .field label { font-size: 0.78rem; color: var(--muted); }
@@ -209,33 +235,18 @@ main {
 .field input[type="number"] {
   font-family: inherit;
   font-size: 0.95rem;
-  padding: 0.55rem 0.7rem;
+  padding: 0.6rem 0.75rem;
   border: 1px solid var(--line);
-  border-radius: var(--radius);
+  border-radius: 10px;
   background: var(--card);
   color: var(--ink);
   width: 8.5rem;
   outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
-.field input:focus { border-color: var(--accent); }
+.field input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-pale); }
 #ticker { text-transform: uppercase; font-family: var(--mono); }
 .field-actions { flex-direction: row; gap: 0.5rem; }
-
-/* buttons: minimal, ink-on-white primary, soft-bordered ghost */
-.btn {
-  font-family: inherit;
-  font-size: 0.9rem;
-  padding: 0.55rem 1.15rem;
-  border-radius: var(--radius);
-  border: 1px solid var(--ink);
-  cursor: pointer;
-}
-.btn-primary { background: var(--ink); color: #fff; }
-.btn-primary:hover { opacity: 0.88; }
-.btn-ghost { background: var(--card); color: var(--muted); border-color: var(--line); }
-.btn-ghost:hover { color: var(--ink); border-color: var(--faint); }
-.btn-sm { padding: 0.35rem 0.8rem; font-size: 0.82rem; }
-.btn-sm:disabled { opacity: 0.5; cursor: default; }
 
 /* holdings table */
 .table-scroll { overflow-x: auto; }
@@ -248,18 +259,18 @@ main {
 }
 .holdings th {
   text-align: left;
-  font-weight: 550;
+  font-weight: 600;
   font-size: 0.72rem;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.06em;
   color: var(--faint);
-  padding: 0.5rem 0.75rem;
+  padding: 0.55rem 0.75rem;
   border-bottom: 1px solid var(--line);
   white-space: nowrap;
 }
 .holdings td {
-  padding: 0.85rem 0.75rem;
-  border-bottom: 1px solid var(--line-soft);
+  padding: 0.9rem 0.75rem;
+  border-bottom: 1px solid var(--line);
   vertical-align: middle;
 }
 .holdings .num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
@@ -273,11 +284,30 @@ main {
   border: none;
   color: var(--muted);
   cursor: pointer;
-  padding: 0.2rem 0.35rem;
-  border-radius: 6px;
+  padding: 0.25rem 0.4rem;
+  border-radius: 8px;
+  transition: color 0.12s ease, background 0.12s ease;
 }
-.icon-btn:hover { color: var(--accent); }
+.icon-btn:hover { color: var(--accent); background: var(--bg); }
 .icon-btn.danger:hover { color: var(--down); }
+
+/* inline edit inputs, shown only in edit mode */
+.row-input {
+  font-family: inherit;
+  font-size: 0.9rem;
+  padding: 0.35rem 0.5rem;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--card);
+  color: var(--ink);
+  width: 6.5rem;
+  text-align: right;
+  outline: none;
+  font-variant-numeric: tabular-nums;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.row-input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-pale); }
+.holdings tr.is-editing td { background: var(--accent-pale); }
 
 .price-loading { color: var(--faint); }
 
@@ -285,9 +315,8 @@ main {
 .news-row td { padding-top: 0; }
 .mover-news {
   background: var(--bg);
-  border: 1px solid var(--line-soft);
   border-radius: var(--radius);
-  padding: 0.9rem 1.1rem;
+  padding: 1rem 1.15rem;
   margin: 0 0 0.6rem;
 }
 .mover-news .mover-tag {
@@ -297,10 +326,10 @@ main {
 }
 .mover-blurb {
   margin: 0 0 0.6rem;
-  padding: 0.55rem 0.7rem;
+  padding: 0.6rem 0.75rem;
   background: var(--card);
-  border: 1px solid var(--line);
-  border-radius: 8px;
+  border-radius: 10px;
+  box-shadow: var(--shadow);
   font-size: 0.86rem;
   line-height: 1.45;
 }
@@ -323,20 +352,48 @@ main {
 
 .empty { color: var(--muted); font-size: 0.9rem; padding: 1.5rem 0; text-align: center; }
 
-/* worth a look: expandable, classification-coded cards */
-.wal-card {
-  border: 1px solid var(--line);
-  border-left: 3px solid var(--line);
-  border-radius: var(--radius);
-  margin-bottom: 0.6rem;
-  overflow: hidden;
-  transition: border-color 0.12s ease;
+/* diversity donut */
+.diversity-wrap {
+  display: flex;
+  align-items: center;
+  gap: 2.5rem;
+  flex-wrap: wrap;
 }
-.wal-card:last-child { margin-bottom: 0; }
-.wal-card.s-bullish { border-left-color: var(--up); }
-.wal-card.s-bearish { border-left-color: var(--down); }
-.wal-card.s-neutral { border-left-color: var(--accent); }
-.wal-card.is-open { border-color: var(--faint); }
+.donut-hold { flex: 0 0 auto; }
+#diversity-chart { width: 200px; height: 200px; display: block; }
+.diversity-legend {
+  flex: 1 1 12rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+  min-width: 12rem;
+}
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-size: 0.9rem;
+}
+.legend-swatch {
+  flex: 0 0 auto;
+  width: 0.85rem;
+  height: 0.85rem;
+  border-radius: 4px;
+}
+.legend-ticker { font-family: var(--mono); font-weight: 600; }
+.legend-pct { margin-left: auto; color: var(--muted); font-variant-numeric: tabular-nums; }
+
+/* worth a look: soft-shadow cards, gradient pills, animated expand, hover lift */
+#worth-a-look { display: flex; flex-direction: column; gap: 0.7rem; }
+.wal-card {
+  background: var(--card);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+  transition: box-shadow 0.18s ease, transform 0.12s ease;
+}
+.wal-card:hover { box-shadow: var(--shadow-hover); transform: translateY(-1px); }
+.wal-card.is-open { box-shadow: var(--shadow-hover); }
 
 .wal-summary {
   width: 100%;
@@ -347,65 +404,106 @@ main {
   border: none;
   text-align: left;
   cursor: pointer;
-  padding: 0.85rem 1rem;
+  padding: 1rem 1.15rem;
   font-family: inherit;
 }
+/* interest tag: soft accent gradient pill with dark text */
 .wal-tag {
   flex: 0 0 auto;
   font-size: 0.68rem;
+  font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: var(--muted);
-  background: var(--bg);
-  border: 1px solid var(--line);
-  padding: 0.15rem 0.5rem;
+  letter-spacing: 0.06em;
+  color: var(--accent-deep);
+  background: linear-gradient(135deg, var(--accent-pale), #d2ecdd);
+  padding: 0.22rem 0.6rem;
   border-radius: 999px;
   white-space: nowrap;
 }
-.wal-headline { flex: 1 1 auto; color: var(--ink); font-size: 0.92rem; }
-.wal-caret { flex: 0 0 auto; color: var(--faint); font-size: 1.1rem; line-height: 1; }
+.wal-headline { flex: 1 1 auto; color: var(--ink); font-size: 0.94rem; }
+.wal-caret { flex: 0 0 auto; color: var(--faint); font-size: 1.15rem; line-height: 1; }
 
+/* animated expand. the js toggles .is-open on the card and the hidden attr on
+   the detail. neutralize hidden's display:none here so max-height can animate. */
 .wal-detail {
-  padding: 0.25rem 1rem 1rem;
-  border-top: 1px solid var(--line-soft);
+  max-height: 0;
+  opacity: 0;
+  overflow: hidden;
+  padding: 0 1.15rem;
+  transition: max-height 0.22s ease, opacity 0.2s ease, padding 0.22s ease;
 }
+.wal-detail[hidden] { display: block; }
+.wal-card.is-open .wal-detail {
+  max-height: 520px;
+  opacity: 1;
+  padding: 0.25rem 1.15rem 1.15rem;
+}
+
+/* classification: saturated gradient-filled pill, white text */
 .wal-class {
   display: inline-block;
-  margin: 0.85rem 0 0.6rem;
-  font-size: 0.72rem;
-  font-weight: 600;
+  margin: 0.85rem 0 0.7rem;
+  font-size: 0.7rem;
+  font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
-  padding: 0.2rem 0.6rem;
+  letter-spacing: 0.06em;
+  padding: 0.28rem 0.7rem;
   border-radius: 999px;
+  color: #fff;
 }
-.wal-class.s-bullish { color: var(--up); background: rgba(var(--up-rgb), 0.12); }
-.wal-class.s-bearish { color: var(--down); background: rgba(var(--down-rgb), 0.12); }
-.wal-class.s-neutral { color: var(--accent); background: rgba(58, 91, 217, 0.1); }
-.wal-full { margin: 0 0 0.5rem; font-size: 0.95rem; color: var(--ink); font-weight: 550; }
-.wal-full-summary { margin: 0 0 0.75rem; font-size: 0.88rem; color: var(--muted); }
-.wal-meta { display: flex; gap: 0.75rem; align-items: center; font-size: 0.82rem; }
+.wal-class.s-bullish { background: linear-gradient(135deg, #2ba368, var(--up-deep)); }
+.wal-class.s-bearish { background: linear-gradient(135deg, #e0455e, var(--down-deep)); }
+.wal-class.s-neutral { background: linear-gradient(135deg, #5b8bf8, var(--neutral-deep)); }
+.wal-full { margin: 0 0 0.5rem; font-size: 0.96rem; color: var(--ink); font-weight: 600; }
+.wal-full-summary { margin: 0 0 0.85rem; font-size: 0.88rem; color: var(--muted); }
+.wal-meta { display: flex; gap: 0.85rem; align-items: center; font-size: 0.82rem; }
 .wal-meta .src { color: var(--faint); }
-.wal-meta a { color: var(--accent); text-decoration: none; }
+.wal-meta a { color: var(--accent); text-decoration: none; font-weight: 500; }
 .wal-meta a:hover { text-decoration: underline; }
-.wal-disclaimer { margin: 0.75rem 0 0; font-size: 0.76rem; color: var(--faint); }
+.wal-disclaimer { margin: 0.85rem 0 0; font-size: 0.76rem; color: var(--faint); }
+
+/* performance graph */
+.perf-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+}
+.perf-head h2 { margin: 0; }
+.tf-select { display: flex; gap: 0.25rem; }
+.tf-btn {
+  font-family: inherit;
+  font-size: 0.82rem;
+  color: var(--muted);
+  background: none;
+  border: 1px solid transparent;
+  padding: 0.35rem 0.75rem;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: color 0.12s ease, background 0.12s ease, border-color 0.12s ease;
+}
+.tf-btn:hover { color: var(--ink); background: var(--bg); }
+.tf-btn.is-active { color: var(--accent-deep); border-color: var(--accent-pale); background: var(--accent-pale); font-weight: 600; }
+.chart-wrap { width: 100%; }
+#perf-chart { width: 100%; height: auto; display: block; }
 
 /* footer */
 .site-footer {
-  max-width: 900px;
+  max-width: 920px;
   margin: 0 auto;
-  padding: 2rem 1.5rem;
+  padding: 2.5rem 1.5rem;
   color: var(--faint);
   font-size: 0.82rem;
-  border-top: 1px solid var(--line);
 }
 .site-footer p { margin: 0; }
 
 /* responsive */
 @media (max-width: 640px) {
-  .topbar { padding-top: 2rem; }
-  .summary, .panel { padding: 1.5rem; }
+  .topbar { padding-top: 2.5rem; }
+  .summary, .panel { padding: 1.6rem; }
   .summary-grid { grid-template-columns: 1fr; gap: 1.25rem; }
   .field input[type="text"], .field input[type="number"] { width: 100%; }
   .field { flex: 1 1 8rem; }
+  .diversity-wrap { gap: 1.5rem; justify-content: center; }
 }

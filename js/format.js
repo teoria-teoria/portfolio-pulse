@@ -36,10 +36,14 @@ function moveTintStyle(dp) {
   if (dp === 0) return "color: var(--muted);";
   const intensity = Math.min(Math.abs(dp) / MOVE_FULL_AT, 1); // 0..1
   const rgb = dp > 0 ? "var(--up-rgb)" : "var(--down-rgb)";
-  const alpha = (0.08 + intensity * 0.84).toFixed(3); // barely-there .08 up to .92
+  // a real 135deg gradient. the light stop stays soft, the deep stop darkens
+  // with the size of the move. so a 0.1% move is a barely-there tint and a 6%+
+  // move is a saturated fill, interpolated the whole way, not three fixed steps.
+  const light = (0.12 + intensity * 0.12).toFixed(3);
+  const deep = (0.22 + intensity * 0.73).toFixed(3);
   // once the fill is saturated enough, flip the text to white so it stays legible.
-  const fg = intensity > 0.5 ? "#ffffff" : (dp > 0 ? "var(--up)" : "var(--down)");
-  return `background: rgba(${rgb}, ${alpha}); color: ${fg};`;
+  const fg = intensity > 0.5 ? "#ffffff" : (dp > 0 ? "var(--up-deep)" : "var(--down-deep)");
+  return `background: linear-gradient(135deg, rgba(${rgb}, ${light}), rgba(${rgb}, ${deep})); color: ${fg};`;
 }
 
 // yyyy-mm-dd for a date in america/new_york. en-CA gives the iso-ish order.
