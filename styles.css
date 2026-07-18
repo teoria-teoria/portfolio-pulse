@@ -295,6 +295,27 @@ main {
   color: var(--muted);
   margin-bottom: 0.5rem;
 }
+.mover-blurb {
+  display: block;
+  margin: 0 0 0.6rem;
+  padding: 0.55rem 0.7rem;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  font-size: 0.86rem;
+  line-height: 1.45;
+}
+.blurb-label {
+  display: block;
+  font-size: 0.66rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--accent);
+  font-weight: 600;
+  margin-bottom: 0.2rem;
+}
+.blurb-text { color: var(--ink); }
+.blurb-loading { color: var(--faint); font-style: italic; }
 .mover-news ul { list-style: none; margin: 0; padding: 0; }
 .mover-news li { padding: 0.3rem 0; font-size: 0.88rem; }
 .mover-news a { color: var(--ink); text-decoration: none; }

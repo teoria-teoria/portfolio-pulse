@@ -82,11 +82,15 @@ function renderMoverNews() {
       <td colspan="8">
         <div class="mover-news">
           <div class="mover-tag">${h.ticker} moved <span class="${dir}">${fmtPct(q.dp)}</span> today. recent headlines:</div>
+          <div class="mover-blurb" data-ticker="${h.ticker}" hidden></div>
           <ul>${list}</ul>
         </div>
       </td>`;
     row.insertAdjacentElement("afterend", newsRow);
   }
+
+  // layer the ai one-liner on top of the headlines where a key is set.
+  if (typeof renderMoverBlurbs === "function") renderMoverBlurbs();
 }
 
 // ---- worth a look ---------------------------------------------------------

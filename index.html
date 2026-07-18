@@ -47,6 +47,13 @@
           <button type="button" id="key-save" class="btn btn-primary btn-sm">save key</button>
         </div>
       </div>
+      <div class="key-bar" id="ai-key-bar" hidden>
+        <span class="key-note">optional. add an openai key to get a one-line plain-english read on why a mover moved. gpt-5-nano, cheap. stays in this browser only, sent only to openai. without it you still see the raw headlines.</span>
+        <div class="key-row">
+          <input type="text" id="ai-key-input" placeholder="openai api key" autocomplete="off">
+          <button type="button" id="ai-key-save" class="btn btn-primary btn-sm">save key</button>
+        </div>
+      </div>
     </section>
 
     <section class="panel" aria-label="performance" id="performance-panel">
@@ -124,6 +131,7 @@
   <script src="js/api.js"></script>
   <script src="js/main.js"></script>
   <script src="js/news.js"></script>
+  <script src="js/ai.js"></script>
   <script src="js/performance.js"></script>
 </body>
 </html>
