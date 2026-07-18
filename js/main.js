@@ -137,6 +137,8 @@ function renderSummary() {
 function render() {
   renderTable();
   renderSummary();
+  // the performance graph tracks the same priced state as the summary.
+  if (typeof drawPerformance === "function") drawPerformance();
 }
 
 // ---- form: add / edit / delete -------------------------------------------
@@ -219,19 +221,6 @@ function cryptoId() {
   if (window.crypto && crypto.randomUUID) return crypto.randomUUID();
   return "id-" + Math.floor(performance.now() * 1000).toString(36);
 }
-
-// ---- tabs -----------------------------------------------------------------
-
-document.querySelectorAll(".tab").forEach((tab) => {
-  tab.addEventListener("click", () => {
-    const target = tab.dataset.tab;
-    document.querySelectorAll(".tab").forEach((t) => t.classList.toggle("is-active", t === tab));
-    document.querySelectorAll(".tab-panel").forEach((p) => {
-      p.classList.toggle("is-active", p.id === target);
-    });
-    if (target === "projection" && typeof drawProjection === "function") drawProjection();
-  });
-});
 
 // ---- live prices ----------------------------------------------------------
 

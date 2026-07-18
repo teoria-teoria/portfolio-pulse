@@ -57,42 +57,30 @@ main {
   font-size: 0.9rem;
 }
 
-/* tabs (removed when the projection tab folds into the unified graph) */
-.tabs { display: flex; gap: 1.25rem; margin-top: 1.25rem; }
-.tab {
+/* performance graph */
+.perf-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+}
+.perf-head h2 { margin: 0; }
+.tf-select { display: flex; gap: 0.25rem; }
+.tf-btn {
   font-family: inherit;
-  font-size: 0.9rem;
+  font-size: 0.82rem;
   color: var(--muted);
   background: none;
-  border: none;
-  padding: 0.4rem 0;
+  border: 1px solid transparent;
+  padding: 0.3rem 0.7rem;
+  border-radius: 999px;
   cursor: pointer;
-  border-bottom: 2px solid transparent;
 }
-.tab:hover { color: var(--ink); }
-.tab.is-active { color: var(--ink); border-bottom-color: var(--ink); font-weight: 550; }
-.tab-panel { display: none; }
-.tab-panel.is-active { display: block; }
-
-/* projection tab (temporary, replaced by the unified graph) */
-.projection-controls {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 1.5rem;
-  margin-bottom: 1.5rem;
-}
-.projection-controls .field input { width: 100%; }
-.projection-controls input[type="range"] { padding: 0; accent-color: var(--accent); }
-.projection-result {
-  display: flex;
-  gap: 2.5rem;
-  padding: 1.25rem 0;
-  border-top: 1px solid var(--line-soft);
-  border-bottom: 1px solid var(--line-soft);
-  margin-bottom: 1.5rem;
-}
+.tf-btn:hover { color: var(--ink); }
+.tf-btn.is-active { color: var(--ink); border-color: var(--line); background: var(--bg); font-weight: 550; }
 .chart-wrap { width: 100%; }
-#proj-chart { width: 100%; height: auto; display: block; }
+#perf-chart { width: 100%; height: auto; display: block; }
 
 /* cards: consistent radius, soft border, no shadow */
 .summary,

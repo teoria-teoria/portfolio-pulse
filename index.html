@@ -12,132 +12,106 @@
       <h1>portfolio pulse</h1>
       <p class="tagline">a manual stock tracker with live prices and news context</p>
     </div>
-    <nav class="tabs">
-      <button class="tab is-active" data-tab="dashboard">dashboard</button>
-      <button class="tab" data-tab="projection">projection</button>
-    </nav>
   </header>
 
   <main>
-    <!-- dashboard tab -->
-    <section id="dashboard" class="tab-panel is-active">
 
-      <section class="summary" aria-label="portfolio summary">
-        <div class="summary-main">
-          <div class="summary-head">
-            <div class="summary-label">total value</div>
-            <button type="button" id="refresh-btn" class="btn btn-ghost btn-sm">refresh</button>
-          </div>
-          <div class="summary-value" id="total-value">--</div>
-          <div class="summary-change" id="total-change">--</div>
+    <section class="summary" aria-label="portfolio summary">
+      <div class="summary-main">
+        <div class="summary-head">
+          <div class="summary-label">total value</div>
+          <button type="button" id="refresh-btn" class="btn btn-ghost btn-sm">refresh</button>
         </div>
-        <div class="summary-grid">
-          <div>
-            <div class="stat-label">total cost</div>
-            <div class="stat-value" id="total-cost">--</div>
-          </div>
-          <div>
-            <div class="stat-label">total gain/loss</div>
-            <div class="stat-value" id="total-gain">--</div>
-          </div>
-          <div>
-            <div class="stat-label">day change</div>
-            <div class="stat-value" id="day-change">--</div>
-          </div>
+        <div class="summary-value" id="total-value">--</div>
+        <div class="summary-change" id="total-change">--</div>
+      </div>
+      <div class="summary-grid">
+        <div>
+          <div class="stat-label">total cost</div>
+          <div class="stat-value" id="total-cost">--</div>
         </div>
-        <div class="status-line" id="status-line"></div>
-        <div class="key-bar" id="key-bar" hidden>
-          <span class="key-note">enter a finnhub key to load live data. it stays in this browser only, never sent anywhere but finnhub.</span>
-          <div class="key-row">
-            <input type="text" id="key-input" placeholder="finnhub api key" autocomplete="off">
-            <button type="button" id="key-save" class="btn btn-primary btn-sm">save key</button>
-          </div>
+        <div>
+          <div class="stat-label">total gain/loss</div>
+          <div class="stat-value" id="total-gain">--</div>
         </div>
-      </section>
-
-      <section class="panel" aria-label="add a holding">
-        <h2>holdings</h2>
-        <form id="holding-form" class="holding-form" autocomplete="off">
-          <div class="field">
-            <label for="ticker">ticker</label>
-            <input type="text" id="ticker" placeholder="AAPL" maxlength="12" required>
-          </div>
-          <div class="field">
-            <label for="shares">shares</label>
-            <input type="number" id="shares" placeholder="10" step="any" min="0" required>
-          </div>
-          <div class="field">
-            <label for="cost">cost basis / share</label>
-            <input type="number" id="cost" placeholder="150.00" step="any" min="0" required>
-          </div>
-          <div class="field field-actions">
-            <button type="submit" id="form-submit" class="btn btn-primary">add</button>
-            <button type="button" id="form-cancel" class="btn btn-ghost" hidden>cancel</button>
-          </div>
-        </form>
-
-        <div class="table-scroll">
-          <table class="holdings" id="holdings-table">
-            <thead>
-              <tr>
-                <th class="col-ticker">ticker</th>
-                <th class="num">shares</th>
-                <th class="num">cost / sh</th>
-                <th class="num">price</th>
-                <th class="num">day</th>
-                <th class="num">value</th>
-                <th class="num">gain/loss</th>
-                <th class="col-actions"></th>
-              </tr>
-            </thead>
-            <tbody id="holdings-body"></tbody>
-          </table>
+        <div>
+          <div class="stat-label">day change</div>
+          <div class="stat-value" id="day-change">--</div>
         </div>
-        <p class="empty" id="holdings-empty" hidden>no holdings yet. add one above to get started.</p>
-      </section>
-
-      <section class="panel" aria-label="worth a look" id="worth-a-look-panel">
-        <h2>worth a look</h2>
-        <p class="panel-note">market headlines matched against a few interest tags. informational surfacing only, not advice.</p>
-        <div id="worth-a-look"></div>
-      </section>
-
+      </div>
+      <div class="status-line" id="status-line"></div>
+      <div class="key-bar" id="key-bar" hidden>
+        <span class="key-note">enter a finnhub key to load live data. it stays in this browser only, never sent anywhere but finnhub.</span>
+        <div class="key-row">
+          <input type="text" id="key-input" placeholder="finnhub api key" autocomplete="off">
+          <button type="button" id="key-save" class="btn btn-primary btn-sm">save key</button>
+        </div>
+      </div>
     </section>
 
-    <!-- projection tab -->
-    <section id="projection" class="tab-panel">
-      <section class="panel">
-        <h2>growth projection</h2>
-        <p class="panel-note">a simple compounding estimate. not a prediction, not advice.</p>
-        <div class="projection-controls">
-          <div class="field">
-            <label for="proj-start">starting balance</label>
-            <input type="number" id="proj-start" value="10000" step="any" min="0">
-          </div>
-          <div class="field">
-            <label for="proj-months">timeline: <span id="proj-months-label">24</span> months</label>
-            <input type="range" id="proj-months" min="1" max="60" value="24">
-          </div>
-          <div class="field">
-            <label for="proj-rate">monthly growth rate %</label>
-            <input type="number" id="proj-rate" value="1.5" step="0.1">
-          </div>
+    <section class="panel" aria-label="performance" id="performance-panel">
+      <div class="perf-head">
+        <h2>performance</h2>
+        <div class="tf-select" role="group" aria-label="timeframe">
+          <button type="button" class="tf-btn is-active" data-tf="day">day</button>
+          <button type="button" class="tf-btn" data-tf="week">week</button>
+          <button type="button" class="tf-btn" data-tf="month">month</button>
         </div>
-        <div class="projection-result">
-          <div>
-            <div class="stat-label">projected balance</div>
-            <div class="stat-value" id="proj-final">--</div>
-          </div>
-          <div>
-            <div class="stat-label">total change</div>
-            <div class="stat-value" id="proj-delta">--</div>
-          </div>
-        </div>
-        <div class="chart-wrap">
-          <canvas id="proj-chart" width="800" height="320"></canvas>
-        </div>
-      </section>
+      </div>
+      <p class="panel-note">solid is to date, dashed is projected. the projection carries the latest observed move an equal window forward. an estimate, not advice.</p>
+      <div class="chart-wrap">
+        <canvas id="perf-chart" width="820" height="300"></canvas>
+      </div>
+      <p class="empty" id="perf-empty" hidden>add a holding and load prices to see the performance line.</p>
     </section>
+
+    <section class="panel" aria-label="add a holding">
+      <h2>holdings</h2>
+      <form id="holding-form" class="holding-form" autocomplete="off">
+        <div class="field">
+          <label for="ticker">ticker</label>
+          <input type="text" id="ticker" placeholder="AAPL" maxlength="12" required>
+        </div>
+        <div class="field">
+          <label for="shares">shares</label>
+          <input type="number" id="shares" placeholder="10" step="any" min="0" required>
+        </div>
+        <div class="field">
+          <label for="cost">cost basis / share</label>
+          <input type="number" id="cost" placeholder="150.00" step="any" min="0" required>
+        </div>
+        <div class="field field-actions">
+          <button type="submit" id="form-submit" class="btn btn-primary">add</button>
+          <button type="button" id="form-cancel" class="btn btn-ghost" hidden>cancel</button>
+        </div>
+      </form>
+
+      <div class="table-scroll">
+        <table class="holdings" id="holdings-table">
+          <thead>
+            <tr>
+              <th class="col-ticker">ticker</th>
+              <th class="num">shares</th>
+              <th class="num">cost / sh</th>
+              <th class="num">price</th>
+              <th class="num">day</th>
+              <th class="num">value</th>
+              <th class="num">gain/loss</th>
+              <th class="col-actions"></th>
+            </tr>
+          </thead>
+          <tbody id="holdings-body"></tbody>
+        </table>
+      </div>
+      <p class="empty" id="holdings-empty" hidden>no holdings yet. add one above to get started.</p>
+    </section>
+
+    <section class="panel" aria-label="worth a look" id="worth-a-look-panel">
+      <h2>worth a look</h2>
+      <p class="panel-note">market headlines matched against a few interest tags. click one to read the classification. informational surfacing only, not advice.</p>
+      <div id="worth-a-look"></div>
+    </section>
+
   </main>
 
   <footer class="site-footer">
@@ -150,6 +124,6 @@
   <script src="js/api.js"></script>
   <script src="js/main.js"></script>
   <script src="js/news.js"></script>
-  <script src="js/projection.js"></script>
+  <script src="js/performance.js"></script>
 </body>
 </html>
