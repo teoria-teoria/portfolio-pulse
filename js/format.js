@@ -46,30 +46,43 @@ function moveTintStyle(dp) {
   return `background: linear-gradient(135deg, rgba(${rgb}, ${light}), rgba(${rgb}, ${deep})); color: ${fg};`;
 }
 
-// glaze for a holding preview card. green when the day is up, red when down,
-// deeper with the size of the move. kept soft so the dark ticker text on top
-// stays readable. neutral when there is no quote yet.
+// glaze for a holding preview card. a radial orb of green (up) or red (down)
+// from the top corner, deeper with the size of the move, layered over the card
+// color so it adapts to light or dark. neutral when there is no quote yet.
 function cardGlazeStyle(dp) {
   if (dp === null || dp === undefined || Number.isNaN(dp)) {
-    return "background: linear-gradient(135deg, #ffffff, #f2f2f1);";
+    return "background: var(--card);";
   }
   const intensity = Math.min(Math.abs(dp) / MOVE_FULL_AT, 1); // 0..1, same scale as the chip
   const rgb = dp >= 0 ? "var(--up-rgb)" : "var(--down-rgb)";
-  const light = (0.06 + intensity * 0.14).toFixed(3);
-  const deep = (0.16 + intensity * 0.45).toFixed(3);
-  return `background: linear-gradient(135deg, rgba(${rgb}, ${light}), rgba(${rgb}, ${deep}));`;
+  const light = (0.04 + intensity * 0.08).toFixed(3);
+  const deep = (0.16 + intensity * 0.42).toFixed(3);
+  return `background: radial-gradient(120% 120% at 78% 12%, rgba(${rgb}, ${deep}), rgba(${rgb}, ${light}) 65%), var(--card);`;
 }
 
-// each stock gets its own signature gradient for the detail modal. deterministic
-// off the ticker so it is stable, decorative only, it means nothing.
+// each stock gets its own signature orb-mesh for the detail modal banner. a few
+// radial blobs at deterministic pseudo-random spots, so every ticker looks
+// different with no fixed shape. decorative only, it means nothing. grain is
+// layered on top in css.
 function tickerGradient(ticker) {
   let hash = 0;
-  for (let i = 0; i < ticker.length; i++) {
-    hash = (hash * 31 + ticker.charCodeAt(i)) % 360;
+  for (let i = 0; i < ticker.length; i++) hash = (hash * 31 + ticker.charCodeAt(i)) >>> 0;
+  const rand = (n) => {
+    const x = Math.sin(hash * 0.0001 + n * 12.9898) * 43758.5453;
+    return x - Math.floor(x);
+  };
+  const baseHue = hash % 360;
+  const orbs = [];
+  for (let i = 0; i < 4; i++) {
+    const px = Math.round(rand(i * 2) * 100);
+    const py = Math.round(rand(i * 2 + 1) * 100);
+    const hue = (baseHue + i * 42 + Math.round(rand(i + 7) * 40)) % 360;
+    const sat = 62 + Math.round(rand(i + 3) * 22);
+    const lig = 42 + Math.round(rand(i + 5) * 16);
+    const size = 45 + Math.round(rand(i + 9) * 45);
+    orbs.push(`radial-gradient(circle at ${px}% ${py}%, hsl(${hue} ${sat}% ${lig}%), transparent ${size}%)`);
   }
-  const h1 = hash;
-  const h2 = (hash + 38) % 360;
-  return `linear-gradient(135deg, hsl(${h1} 58% 44%), hsl(${h2} 62% 28%))`;
+  return orbs.join(", ") + `, hsl(${baseHue} 55% 36%)`;
 }
 
 // yyyy-mm-dd for a date in america/new_york. en-CA gives the iso-ish order.

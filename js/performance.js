@@ -1,54 +1,63 @@
-// the unified performance graph. one continuous line of total portfolio value.
-// the left, solid part is to date. the right, dashed part projects the same
-// observed trend an equal window forward. no chart library, drawn on a canvas.
+// the performance graph. one line of total portfolio value over time.
 //
-// on data: finnhub's free tier returns 403 for /stock/candle, so there is no
-// real intraday or daily series here. the only real numbers are each holding's
-// previous close and current price. two points. so the line is anchored on
-// those and the shape between them is invented: a deterministic squiggle that
-// vanishes at the endpoints, so the anchors stay exact but the middle looks
-// alive. each timeframe uses its own seed and wiggle count so day, week, month,
-// and 3mo look different. it is modeled, not real history.
+// honest model: the only real numbers are total cost basis (what you put in),
+// current market value (from live quotes), and your start date. so the line
+// runs from cost basis at inception to current value now. those endpoints are
+// real. the shape between them is a deterministic squiggle, invented, forced to
+// zero at the ends so the anchors stay exact. every timeframe caps at inception,
+// so a 3 month view when you have only been invested a few weeks just shows
+// inception to now instead of inventing a start value. day uses the real
+// previous close as its left anchor. still modeled between the ends, not real
+// history (finnhub's free tier has no candles).
 
 const perfCanvas = document.getElementById("perf-chart");
 const perfEmpty = document.getElementById("perf-empty");
+const inceptionInput = document.getElementById("inception-date");
 
-// per timeframe: how many sessions the window spans, plus a seed and wiggle
-// count so the shapes differ, plus the axis labels.
+const INCEPTION_KEY = "pp:inception";
+const DEFAULT_INCEPTION = "2026-06-24";
+
 const TF_META = {
-  day:     { sessions: 1,  seed: 1.3,  freq: 8,  back: "1 day ago",    fwd: "+1 day" },
-  week:    { sessions: 5,  seed: 3.9,  freq: 11, back: "1 week ago",   fwd: "+1 week" },
-  month:   { sessions: 21, seed: 7.1,  freq: 14, back: "1 month ago",  fwd: "+1 month" },
-  quarter: { sessions: 63, seed: 12.4, freq: 18, back: "3 months ago", fwd: "+3 months" }
+  day:     { days: 1,  seed: 1.3,  freq: 8,  back: "1 day ago",    fwd: "+1 day" },
+  week:    { days: 7,  seed: 3.9,  freq: 11, back: "1 week ago",   fwd: "+1 week" },
+  month:   { days: 30, seed: 7.1,  freq: 14, back: "1 month ago",  fwd: "+1 month" },
+  quarter: { days: 90, seed: 12.4, freq: 18, back: "3 months ago", fwd: "+3 months" }
 };
 
 let perfTimeframe = "day";
 
-// history fills the left share of the axis, the projection the right share, with
-// a "now" divider between them. both cover an equal window in time.
 const HIST_FRACTION = 0.75;
 const HIST_POINTS = 48;
 const PROJ_POINTS = 22;
 
+// ---- inception ------------------------------------------------------------
+
+function getInceptionStr() {
+  return localStorage.getItem(INCEPTION_KEY) || DEFAULT_INCEPTION;
+}
+function getInceptionDate() {
+  const d = new Date(getInceptionStr() + "T00:00:00");
+  return isNaN(d.getTime()) ? new Date(DEFAULT_INCEPTION + "T00:00:00") : d;
+}
+function fmtShortDate(d) {
+  return d.toLocaleDateString("en-US", { month: "short", day: "numeric" }).toLowerCase();
+}
+
 // ---- the numbers ----------------------------------------------------------
 
-// real current and previous-close portfolio value from the quotes we have.
 function pricedTotals() {
-  let now = 0;
-  let prev = 0;
-  let priced = false;
+  let now = 0, prev = 0, basis = 0, priced = false;
   for (const h of state.holdings) {
     const q = state.quotes[h.ticker];
     if (!q || typeof q.c !== "number" || q.c <= 0) continue;
     priced = true;
     now += h.shares * q.c;
     prev += h.shares * (typeof q.pc === "number" && q.pc > 0 ? q.pc : q.c);
+    basis += h.shares * h.cost;
   }
-  return { now, prev, priced };
+  return { now, prev, basis, priced };
 }
 
-// smooth deterministic noise in roughly [-1, 1]. summed low-frequency sines so
-// the line squiggles instead of jittering. varies with the seed.
 function smoothNoise(x, seed) {
   return (
     Math.sin(x * 1.0 + seed) * 0.6 +
@@ -57,42 +66,63 @@ function smoothNoise(x, seed) {
   ) / 1.05;
 }
 
-// build the {history, projection} value series for a timeframe. history ends
-// exactly on the current value and one window back lands on the discounted
-// value. the squiggle rides on top of that geometric base and is forced to zero
-// at the endpoints so the real anchors stay exact.
 function buildSeries(tf) {
-  const { now, prev, priced } = pricedTotals();
-  if (!priced || now <= 0 || prev <= 0) return null;
+  const { now, prev, basis, priced } = pricedTotals();
+  if (!priced || now <= 0) return null;
 
   const meta = TF_META[tf];
-  const r = now / prev - 1;                 // real observed daily return
-  const step = Math.pow(1 + r, meta.sessions); // total drift across one window
-  const start = now / step;
+  const inception = getInceptionDate();
+  const MS = 86400000;
+  let daysSince = (new Date() - inception) / MS;
+  if (!(daysSince > 0)) daysSince = 0.5; // inception today or in the future
 
-  const span = Math.abs(now - start);
-  const amp = Math.max(span * 0.6, now * 0.0016); // squiggle size
+  // value on the cost-basis -> current-value line, `daysAgo` before now.
+  const lineValue = (daysAgo) => {
+    const frac = Math.min(Math.max((daysSince - daysAgo) / daysSince, 0), 1);
+    return basis + (now - basis) * frac;
+  };
+
+  const effDays = Math.min(meta.days, daysSince);
+  const cappedAtInception = meta.days >= daysSince;
+
+  // left anchor. day uses the real previous close, longer windows use the line.
+  let leftValue;
+  if (tf === "day") leftValue = prev > 0 ? prev : lineValue(effDays);
+  else leftValue = lineValue(effDays);
+
+  const span = Math.abs(now - leftValue);
+  const amp = Math.max(span * 0.3, now * 0.0016); // gentle, neutral squiggle
 
   const history = [];
   for (let i = 0; i < HIST_POINTS; i++) {
     const t = i / (HIST_POINTS - 1);
-    const base = start * Math.pow(step, t);
-    const env = Math.sin(Math.PI * t); // 0 at both ends, keeps anchors exact
+    const base = leftValue + (now - leftValue) * t;
+    const env = Math.sin(Math.PI * t);
     history.push(base + amp * env * smoothNoise(t * meta.freq, meta.seed));
   }
-  history[0] = start;
+  history[0] = leftValue;
   history[HIST_POINTS - 1] = now;
 
+  // projection: carry the recent daily trend a short window forward.
+  const dailyR = prev > 0 ? now / prev - 1 : 0;
+  const projStep = Math.pow(1 + dailyR, Math.max(effDays, 1));
   const projection = [];
   for (let j = 0; j < PROJ_POINTS; j++) {
     const t = j / (PROJ_POINTS - 1);
-    const base = now * Math.pow(step, t);
+    const base = now * Math.pow(projStep, t);
     const env = Math.sin(Math.PI * t);
-    projection.push(base + amp * 0.7 * env * smoothNoise(t * meta.freq + 3.1, meta.seed + 1.7));
+    projection.push(base + amp * 0.6 * env * smoothNoise(t * meta.freq + 3.1, meta.seed + 1.7));
   }
   projection[0] = now;
 
-  return { history, projection, now, prev, r };
+  return {
+    history,
+    projection,
+    now,
+    up: now >= leftValue,
+    backLabel: cappedAtInception ? fmtShortDate(inception) : meta.back,
+    fwdLabel: meta.fwd
+  };
 }
 
 // ---- drawing --------------------------------------------------------------
@@ -108,8 +138,6 @@ function compactMoney(n) {
   return "$" + Math.round(n);
 }
 
-// whole dollars on a narrow band so gridlines stay distinct, compact only for
-// large balances where the short form helps.
 function axisMoney(v, max) {
   if (max < 100000) return "$" + Math.round(v).toLocaleString("en-US");
   return compactMoney(v);
@@ -126,8 +154,7 @@ function drawPerformance() {
   perfCanvas.style.display = "";
   perfEmpty.hidden = true;
 
-  const { history, projection, now, r } = series;
-  const meta = TF_META[perfTimeframe];
+  const { history, projection, now, up } = series;
 
   const cssW = perfCanvas.clientWidth || 820;
   const cssH = Math.max(240, Math.round(cssW * 0.36));
@@ -141,10 +168,10 @@ function drawPerformance() {
   const ink = cssVar("--ink") || "#14171a";
   const lineColor = cssVar("--line") || "rgba(20,23,26,0.07)";
   const textColor = cssVar("--muted") || "#6b7280";
-  const up = "rgb(" + (cssVar("--up-rgb") || "18,134,79") + ")";
-  const down = "rgb(" + (cssVar("--down-rgb") || "198,39,58") + ")";
-  const trend = r >= 0 ? up : down;
-  const trendRgb = r >= 0 ? (cssVar("--up-rgb") || "18,134,79") : (cssVar("--down-rgb") || "198,39,58");
+  const upC = "rgb(" + (cssVar("--up-rgb") || "18,134,79") + ")";
+  const downC = "rgb(" + (cssVar("--down-rgb") || "198,39,58") + ")";
+  const trend = up ? upC : downC;
+  const trendRgb = up ? (cssVar("--up-rgb") || "18,134,79") : (cssVar("--down-rgb") || "198,39,58");
 
   const padL = 58, padR = 16, padT = 18, padB = 30;
   const plotW = cssW - padL - padR;
@@ -163,7 +190,6 @@ function drawPerformance() {
   const histX = (i) => padL + (nowX - padL) * (i / (history.length - 1));
   const projX = (j) => nowX + (padL + plotW - nowX) * (j / (projection.length - 1));
 
-  // y gridlines with value labels
   ctx.font = "11px system-ui, sans-serif";
   ctx.textBaseline = "middle";
   const gridCount = 4;
@@ -181,11 +207,9 @@ function drawPerformance() {
     ctx.fillText(axisMoney(val, max), padL - 8, y);
   }
 
-  // subtle shading over the projected region
   ctx.fillStyle = "rgba(0,0,0,0.02)";
   ctx.fillRect(nowX, padT, padL + plotW - nowX, plotH);
 
-  // area fill under the history line
   const grad = ctx.createLinearGradient(0, padT, 0, padT + plotH);
   grad.addColorStop(0, "rgba(" + trendRgb + ",0.14)");
   grad.addColorStop(1, "rgba(" + trendRgb + ",0)");
@@ -197,7 +221,6 @@ function drawPerformance() {
   ctx.fillStyle = grad;
   ctx.fill();
 
-  // history line: solid
   ctx.beginPath();
   history.forEach((v, i) => {
     const x = histX(i), y = yAt(v);
@@ -210,7 +233,6 @@ function drawPerformance() {
   ctx.setLineDash([]);
   ctx.stroke();
 
-  // projection line: dashed, same hue, lighter
   ctx.beginPath();
   ctx.moveTo(nowX, yAt(now));
   projection.forEach((v, j) => ctx.lineTo(projX(j), yAt(v)));
@@ -222,7 +244,6 @@ function drawPerformance() {
   ctx.setLineDash([]);
   ctx.globalAlpha = 1;
 
-  // the "now" divider
   ctx.strokeStyle = lineColor;
   ctx.lineWidth = 1;
   ctx.beginPath();
@@ -230,24 +251,22 @@ function drawPerformance() {
   ctx.lineTo(nowX, padT + plotH);
   ctx.stroke();
 
-  // the real "now" anchor dot
   ctx.beginPath();
   ctx.arc(nowX, yAt(now), 3.5, 0, Math.PI * 2);
   ctx.fillStyle = ink;
   ctx.fill();
 
-  // x labels
   ctx.fillStyle = textColor;
   ctx.textBaseline = "top";
   ctx.textAlign = "left";
-  ctx.fillText(meta.back, padL, cssH - padB + 8);
+  ctx.fillText(series.backLabel, padL, cssH - padB + 8);
   ctx.textAlign = "center";
   ctx.fillText("now", nowX, cssH - padB + 8);
   ctx.textAlign = "right";
-  ctx.fillText(meta.fwd, cssW - padR, cssH - padB + 8);
+  ctx.fillText(series.fwdLabel, cssW - padR, cssH - padB + 8);
 }
 
-// ---- timeframe selector ---------------------------------------------------
+// ---- controls -------------------------------------------------------------
 
 document.querySelectorAll(".tf-btn").forEach((btn) => {
   btn.addEventListener("click", () => {
@@ -257,7 +276,16 @@ document.querySelectorAll(".tf-btn").forEach((btn) => {
   });
 });
 
-// redraw on resize so the canvas tracks its container width
+if (inceptionInput) {
+  inceptionInput.value = getInceptionStr();
+  inceptionInput.addEventListener("change", () => {
+    if (inceptionInput.value) {
+      localStorage.setItem(INCEPTION_KEY, inceptionInput.value);
+      drawPerformance();
+    }
+  });
+}
+
 window.addEventListener("resize", () => {
   if (perfCanvas.style.display !== "none") drawPerformance();
 });

@@ -412,6 +412,36 @@ keySave.addEventListener("click", () => {
   loadLiveData();
 });
 
+// ---- theme ----------------------------------------------------------------
+
+// the head script already applied the saved or system theme before paint. here
+// we just wire the toggle and keep the icon in sync. canvases are redrawn on a
+// switch so they pick up the new theme colors.
+const themeToggle = document.getElementById("theme-toggle");
+const themeIcon = themeToggle ? themeToggle.querySelector(".theme-icon") : null;
+
+function currentTheme() {
+  const attr = document.documentElement.getAttribute("data-theme");
+  if (attr) return attr;
+  return window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+}
+
+function applyThemeIcon() {
+  if (themeIcon) themeIcon.textContent = currentTheme() === "dark" ? "☀" : "☾"; // sun / moon
+}
+
+if (themeToggle) {
+  applyThemeIcon();
+  themeToggle.addEventListener("click", () => {
+    const next = currentTheme() === "dark" ? "light" : "dark";
+    document.documentElement.setAttribute("data-theme", next);
+    localStorage.setItem("pp:theme", next);
+    applyThemeIcon();
+    if (typeof drawPerformance === "function") drawPerformance();
+    if (typeof drawDiversity === "function") drawDiversity();
+  });
+}
+
 // ---- boot -----------------------------------------------------------------
 
 // wait for load so the news, graph, and donut layers are defined before we call

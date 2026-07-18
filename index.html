@@ -8,12 +8,28 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css">
+  <script>
+    // apply the saved theme before paint so there is no flash of the wrong one.
+    (function () {
+      try {
+        var t = localStorage.getItem("pp:theme");
+        if (t === "dark" || (!t && window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches)) {
+          document.documentElement.setAttribute("data-theme", "dark");
+        } else if (t === "light") {
+          document.documentElement.setAttribute("data-theme", "light");
+        }
+      } catch (e) {}
+    })();
+  </script>
 </head>
 <body>
   <header class="topbar">
     <div class="brand">
       <h1>portfolio pulse</h1>
     </div>
+    <button type="button" id="theme-toggle" class="theme-toggle" aria-label="toggle dark mode">
+      <span class="theme-icon"></span>
+    </button>
   </header>
 
   <main>
@@ -61,11 +77,14 @@
     <section class="panel" aria-label="performance" id="performance-panel">
       <div class="perf-head">
         <h2 class="section-title">performance</h2>
-        <div class="tf-select" role="group" aria-label="timeframe">
-          <button type="button" class="tf-btn is-active" data-tf="day">day</button>
-          <button type="button" class="tf-btn" data-tf="week">week</button>
-          <button type="button" class="tf-btn" data-tf="month">month</button>
-          <button type="button" class="tf-btn" data-tf="quarter">3mo</button>
+        <div class="perf-right">
+          <label class="since-label">since <input type="date" id="inception-date"></label>
+          <div class="tf-select" role="group" aria-label="timeframe">
+            <button type="button" class="tf-btn is-active" data-tf="day">day</button>
+            <button type="button" class="tf-btn" data-tf="week">week</button>
+            <button type="button" class="tf-btn" data-tf="month">month</button>
+            <button type="button" class="tf-btn" data-tf="quarter">3mo</button>
+          </div>
         </div>
       </div>
       <div class="chart-wrap">
@@ -106,7 +125,7 @@
         </div>
         <div class="ask-log" id="ask-log"></div>
         <form id="ask-form" autocomplete="off">
-          <input type="text" id="ask-input" placeholder="e.g. sell right after buying, do i owe capital gains?">
+          <input type="text" id="ask-input" placeholder="e.g. what's meta's debt to equity ratio?">
           <button type="submit" class="btn btn-primary btn-sm">ask</button>
         </form>
       </div>
