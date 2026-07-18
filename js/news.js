@@ -127,6 +127,46 @@ function matchTag(text) {
   return null;
 }
 
+// ---- directional classification -------------------------------------------
+
+// same idea as the interest tags: keyword matching in js against the headline
+// and summary text. not a finnhub field. it reads the language, not the price,
+// so it is informational surfacing only, never a buy or sell call.
+const SENTIMENT_WORDS = {
+  bullish: ["surge", "surges", "soar", "soars", "rally", "rallies", "jump", "jumps",
+    "gain", "gains", "beat", "beats", "upgrade", "upgraded", "record", "growth",
+    "profit", "profits", "outperform", "bullish", "boost", "boosts", "win", "wins",
+    "strong", "rise", "rises", "rose", "climb", "climbs", "tops", "rebound",
+    "raises", "raised", "high", "higher", "optimistic", "upbeat"],
+  bearish: ["plunge", "plunges", "plummet", "plummets", "fall", "falls", "fell",
+    "drop", "drops", "sink", "sinks", "tumble", "tumbles", "slump", "slumps",
+    "miss", "misses", "downgrade", "downgraded", "cut", "cuts", "loss", "losses",
+    "weak", "warn", "warns", "warning", "lawsuit", "probe", "investigation",
+    "recall", "layoff", "layoffs", "bearish", "decline", "declines", "slash",
+    "fears", "crash", "selloff", "sell-off", "bankruptcy", "default", "lower", "sue"]
+};
+
+const COMPILED_SENTIMENT = {
+  bullish: SENTIMENT_WORDS.bullish.map((w) => new RegExp("\\b" + escapeRegex(w) + "\\b", "i")),
+  bearish: SENTIMENT_WORDS.bearish.map((w) => new RegExp("\\b" + escapeRegex(w) + "\\b", "i"))
+};
+
+// green for bullish language, red for bearish, blue for neutral. the side with
+// more keyword hits wins. a tie or nothing matched reads neutral.
+function classify(text) {
+  const bull = COMPILED_SENTIMENT.bullish.reduce((c, re) => c + (re.test(text) ? 1 : 0), 0);
+  const bear = COMPILED_SENTIMENT.bearish.reduce((c, re) => c + (re.test(text) ? 1 : 0), 0);
+  if (bull > bear) return "bullish";
+  if (bear > bull) return "bearish";
+  return "neutral";
+}
+
+const SENTIMENT_LABEL = {
+  bullish: "bullish language",
+  neutral: "neutral / informational",
+  bearish: "bearish language"
+};
+
 const WAL_MAX = 8;
 
 async function loadWorthALook() {
@@ -144,9 +184,17 @@ async function loadWorthALook() {
   const matched = [];
   for (const n of items || []) {
     if (!n || !n.headline || !n.url) continue;
-    const tag = matchTag(n.headline + " " + (n.summary || ""));
+    const text = n.headline + " " + (n.summary || "");
+    const tag = matchTag(text);
     if (!tag) continue;
-    matched.push({ tag, headline: n.headline, url: n.url, source: n.source || "" });
+    matched.push({
+      tag,
+      headline: n.headline,
+      url: n.url,
+      source: n.source || "",
+      summary: n.summary || "",
+      sentiment: classify(text)
+    });
     if (matched.length >= WAL_MAX) break;
   }
 
@@ -160,18 +208,47 @@ function renderWorthALook(matched) {
     return;
   }
   container.innerHTML = matched
-    .map(
-      (m) => `
-      <div class="wal-item">
-        <span class="wal-tag">${escapeHtml(m.tag)}</span>
-        <div class="wal-body">
-          <a href="${m.url}" target="_blank" rel="noopener">${escapeHtml(m.headline)}</a>
-          ${m.source ? `<div class="src">${escapeHtml(m.source)}</div>` : ""}
+    .map((m, i) => {
+      const s = m.sentiment;
+      const summary = m.summary
+        ? `<p class="wal-full-summary">${escapeHtml(m.summary)}</p>`
+        : "";
+      return `
+      <div class="wal-card s-${s}" data-i="${i}">
+        <button type="button" class="wal-summary" aria-expanded="false" data-i="${i}">
+          <span class="wal-tag">${escapeHtml(m.tag)}</span>
+          <span class="wal-headline">${escapeHtml(m.headline)}</span>
+          <span class="wal-caret" aria-hidden="true">+</span>
+        </button>
+        <div class="wal-detail" id="wal-detail-${i}" hidden>
+          <span class="wal-class s-${s}">${escapeHtml(SENTIMENT_LABEL[s])}</span>
+          <p class="wal-full">${escapeHtml(m.headline)}</p>
+          ${summary}
+          <div class="wal-meta">
+            ${m.source ? `<span class="src">${escapeHtml(m.source)}</span>` : ""}
+            <a href="${m.url}" target="_blank" rel="noopener">read the story</a>
+          </div>
+          <p class="wal-disclaimer">classified by the language in the headline. informational surfacing only, not a buy or sell call.</p>
         </div>
-      </div>`
-    )
+      </div>`;
+    })
     .join("");
 }
+
+// expand or collapse a card on click. event delegation on the container so it
+// survives re-renders.
+document.getElementById("worth-a-look").addEventListener("click", (e) => {
+  const btn = e.target.closest(".wal-summary");
+  if (!btn) return;
+  const card = btn.closest(".wal-card");
+  const detail = card.querySelector(".wal-detail");
+  const open = detail.hidden;
+  detail.hidden = !open;
+  btn.setAttribute("aria-expanded", String(open));
+  card.classList.toggle("is-open", open);
+  const caret = btn.querySelector(".wal-caret");
+  if (caret) caret.textContent = open ? "−" : "+"; // minus / plus
+});
 
 // ---- helpers --------------------------------------------------------------
 

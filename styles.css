@@ -303,18 +303,36 @@ main {
 
 .empty { color: var(--muted); font-size: 0.9rem; padding: 1.5rem 0; text-align: center; }
 
-/* worth a look */
-.wal-item {
-  padding: 0.9rem 0;
-  border-bottom: 1px solid var(--line-soft);
-  display: flex;
-  gap: 1rem;
-  align-items: baseline;
+/* worth a look: expandable, classification-coded cards */
+.wal-card {
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--line);
+  border-radius: var(--radius);
+  margin-bottom: 0.6rem;
+  overflow: hidden;
+  transition: border-color 0.12s ease;
 }
-.wal-item:last-child { border-bottom: none; }
+.wal-card:last-child { margin-bottom: 0; }
+.wal-card.s-bullish { border-left-color: var(--up); }
+.wal-card.s-bearish { border-left-color: var(--down); }
+.wal-card.s-neutral { border-left-color: var(--accent); }
+.wal-card.is-open { border-color: var(--faint); }
+
+.wal-summary {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  background: none;
+  border: none;
+  text-align: left;
+  cursor: pointer;
+  padding: 0.85rem 1rem;
+  font-family: inherit;
+}
 .wal-tag {
   flex: 0 0 auto;
-  font-size: 0.7rem;
+  font-size: 0.68rem;
   text-transform: uppercase;
   letter-spacing: 0.05em;
   color: var(--muted);
@@ -324,9 +342,33 @@ main {
   border-radius: 999px;
   white-space: nowrap;
 }
-.wal-body a { color: var(--ink); text-decoration: none; font-size: 0.92rem; }
-.wal-body a:hover { text-decoration: underline; }
-.wal-body .src { color: var(--faint); font-size: 0.78rem; margin-top: 0.15rem; }
+.wal-headline { flex: 1 1 auto; color: var(--ink); font-size: 0.92rem; }
+.wal-caret { flex: 0 0 auto; color: var(--faint); font-size: 1.1rem; line-height: 1; }
+
+.wal-detail {
+  padding: 0.25rem 1rem 1rem;
+  border-top: 1px solid var(--line-soft);
+}
+.wal-class {
+  display: inline-block;
+  margin: 0.85rem 0 0.6rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 0.2rem 0.6rem;
+  border-radius: 999px;
+}
+.wal-class.s-bullish { color: var(--up); background: rgba(var(--up-rgb), 0.12); }
+.wal-class.s-bearish { color: var(--down); background: rgba(var(--down-rgb), 0.12); }
+.wal-class.s-neutral { color: var(--accent); background: rgba(58, 91, 217, 0.1); }
+.wal-full { margin: 0 0 0.5rem; font-size: 0.95rem; color: var(--ink); font-weight: 550; }
+.wal-full-summary { margin: 0 0 0.75rem; font-size: 0.88rem; color: var(--muted); }
+.wal-meta { display: flex; gap: 0.75rem; align-items: center; font-size: 0.82rem; }
+.wal-meta .src { color: var(--faint); }
+.wal-meta a { color: var(--accent); text-decoration: none; }
+.wal-meta a:hover { text-decoration: underline; }
+.wal-disclaimer { margin: 0.75rem 0 0; font-size: 0.76rem; color: var(--faint); }
 
 /* footer */
 .site-footer {
