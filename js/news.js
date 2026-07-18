@@ -1,99 +1,7 @@
-// news layer. two jobs: headlines for holdings that made a big move today, and
-// the "worth a look" scan of general market news against a few interest tags.
-
-const MOVER_THRESHOLD = 2; // percent, absolute
-const MOVER_NEWS_DAYS = 4; // how far back to pull company news
-
-state.moverNews = {};       // ticker -> [ {headline, url, source} ]
-const newsInFlight = new Set();
-
-// ---- news on big movers ---------------------------------------------------
-
-function moverTickers() {
-  return uniqueTickers().filter((t) => {
-    const q = state.quotes[t];
-    return q && typeof q.dp === "number" && Math.abs(q.dp) >= MOVER_THRESHOLD;
-  });
-}
-
-async function loadMoverNews() {
-  const movers = moverTickers();
-  const today = todayET();
-
-  for (const ticker of movers) {
-    if (state.moverNews[ticker]) continue; // already have it this session
-    if (newsInFlight.has(ticker)) continue;
-
-    // cache-first so a refresh within the same day does not refetch.
-    const cached = getCachedNews(ticker, today);
-    if (cached) {
-      state.moverNews[ticker] = cached;
-      continue;
-    }
-
-    newsInFlight.add(ticker);
-    try {
-      const items = await fetchCompanyNews(ticker, daysAgoET(MOVER_NEWS_DAYS), today);
-      const trimmed = (items || [])
-        .filter((n) => n && n.headline && n.url)
-        .slice(0, 3)
-        .map((n) => ({ headline: n.headline, url: n.url, source: n.source || "" }));
-      state.moverNews[ticker] = trimmed;
-      setCachedNews(ticker, today, trimmed);
-    } catch (e) {
-      // a news failure should not break the price view. leave it out.
-      state.moverNews[ticker] = [];
-    } finally {
-      newsInFlight.delete(ticker);
-    }
-  }
-
-  renderMoverNews();
-}
-
-// inject a news panel under each mover row. called after the table renders.
-function renderMoverNews() {
-  if (!state.moverNews) return;
-  // drop any stale news rows first so re-renders do not stack.
-  document.querySelectorAll("#holdings-body .news-row").forEach((r) => r.remove());
-
-  for (const h of state.holdings) {
-    const q = state.quotes[h.ticker];
-    if (!q || typeof q.dp !== "number" || Math.abs(q.dp) < MOVER_THRESHOLD) continue;
-    const items = state.moverNews[h.ticker];
-    if (!items || items.length === 0) continue;
-
-    const row = document.querySelector(`#holdings-body tr[data-id="${h.id}"]`);
-    if (!row) continue;
-
-    const dir = q.dp >= 0 ? "up" : "down";
-    const list = items
-      .map(
-        (n) =>
-          `<li><a href="${n.url}" target="_blank" rel="noopener">${escapeHtml(n.headline)}</a>` +
-          (n.source ? ` <span class="src">${escapeHtml(n.source)}</span>` : "") +
-          `</li>`
-      )
-      .join("");
-
-    const newsRow = document.createElement("tr");
-    newsRow.className = "news-row";
-    newsRow.innerHTML = `
-      <td colspan="8">
-        <div class="mover-news">
-          <div class="mover-tag">${h.ticker} moved <span class="${dir}">${fmtPct(q.dp)}</span> today. recent headlines:</div>
-          <div class="mover-blurb" data-ticker="${h.ticker}" hidden></div>
-          <ul>${list}</ul>
-        </div>
-      </td>`;
-    row.insertAdjacentElement("afterend", newsRow);
-  }
-
-  // layer the ai one-liner on top of the headlines where a key is set.
-  if (typeof renderMoverBlurbs === "function") renderMoverBlurbs();
-}
-
-// ---- worth a look ---------------------------------------------------------
+// worth a look. scans the general market news feed against a few interest tags,
+// then reads the language of each match to color it bullish, neutral, or bearish.
+// all client-side keyword matching, not a finnhub field, so it is informational
+// surfacing only, never a buy or sell call.
 
 // three fixed interest tags. finnhub cannot filter by a custom theme, so the
 // matching happens here in js against the headline and summary text.
@@ -133,9 +41,6 @@ function matchTag(text) {
 
 // ---- directional classification -------------------------------------------
 
-// same idea as the interest tags: keyword matching in js against the headline
-// and summary text. not a finnhub field. it reads the language, not the price,
-// so it is informational surfacing only, never a buy or sell call.
 const SENTIMENT_WORDS = {
   bullish: ["surge", "surges", "soar", "soars", "rally", "rallies", "jump", "jumps",
     "gain", "gains", "beat", "beats", "upgrade", "upgraded", "record", "growth",
@@ -155,8 +60,6 @@ const COMPILED_SENTIMENT = {
   bearish: SENTIMENT_WORDS.bearish.map((w) => new RegExp("\\b" + escapeRegex(w) + "\\b", "i"))
 };
 
-// green for bullish language, red for bearish, blue for neutral. the side with
-// more keyword hits wins. a tie or nothing matched reads neutral.
 function classify(text) {
   const bull = COMPILED_SENTIMENT.bullish.reduce((c, re) => c + (re.test(text) ? 1 : 0), 0);
   const bear = COMPILED_SENTIMENT.bearish.reduce((c, re) => c + (re.test(text) ? 1 : 0), 0);
@@ -165,11 +68,7 @@ function classify(text) {
   return "neutral";
 }
 
-const SENTIMENT_LABEL = {
-  bullish: "bullish language",
-  neutral: "neutral / informational",
-  bearish: "bearish language"
-};
+const SENTIMENT_LABEL = { bullish: "bullish", neutral: "neutral", bearish: "bearish" };
 
 const WAL_MAX = 8;
 
@@ -214,25 +113,21 @@ function renderWorthALook(matched) {
   container.innerHTML = matched
     .map((m, i) => {
       const s = m.sentiment;
-      const summary = m.summary
-        ? `<p class="wal-full-summary">${escapeHtml(m.summary)}</p>`
-        : "";
+      const summary = m.summary ? `<p class="wal-summary-text">${escapeHtml(m.summary)}</p>` : "";
       return `
       <div class="wal-card s-${s}" data-i="${i}">
-        <button type="button" class="wal-summary" aria-expanded="false" data-i="${i}">
-          <span class="wal-tag">${escapeHtml(m.tag)}</span>
+        <button type="button" class="wal-row" aria-expanded="false">
+          <span class="wal-dot s-${s}" title="${SENTIMENT_LABEL[s]}"></span>
           <span class="wal-headline">${escapeHtml(m.headline)}</span>
-          <span class="wal-caret" aria-hidden="true">+</span>
+          <span class="wal-tag">${escapeHtml(m.tag)}</span>
         </button>
-        <div class="wal-detail" id="wal-detail-${i}" hidden>
-          <span class="wal-class s-${s}">${escapeHtml(SENTIMENT_LABEL[s])}</span>
-          <p class="wal-full">${escapeHtml(m.headline)}</p>
+        <div class="wal-detail" hidden>
           ${summary}
           <div class="wal-meta">
+            <span class="wal-class s-${s}">${escapeHtml(SENTIMENT_LABEL[s])}</span>
             ${m.source ? `<span class="src">${escapeHtml(m.source)}</span>` : ""}
-            <a href="${m.url}" target="_blank" rel="noopener">read the story</a>
+            <a href="${m.url}" target="_blank" rel="noopener">read</a>
           </div>
-          <p class="wal-disclaimer">classified by the language in the headline. informational surfacing only, not a buy or sell call.</p>
         </div>
       </div>`;
     })
@@ -242,16 +137,14 @@ function renderWorthALook(matched) {
 // expand or collapse a card on click. event delegation on the container so it
 // survives re-renders.
 document.getElementById("worth-a-look").addEventListener("click", (e) => {
-  const btn = e.target.closest(".wal-summary");
-  if (!btn) return;
-  const card = btn.closest(".wal-card");
+  const row = e.target.closest(".wal-row");
+  if (!row) return;
+  const card = row.closest(".wal-card");
   const detail = card.querySelector(".wal-detail");
   const open = detail.hidden;
   detail.hidden = !open;
-  btn.setAttribute("aria-expanded", String(open));
+  row.setAttribute("aria-expanded", String(open));
   card.classList.toggle("is-open", open);
-  const caret = btn.querySelector(".wal-caret");
-  if (caret) caret.textContent = open ? "−" : "+"; // minus / plus
 });
 
 // ---- helpers --------------------------------------------------------------

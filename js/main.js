@@ -1,25 +1,30 @@
-// dashboard logic. holds the portfolio state, renders the table and summary,
-// and wires up add / edit / delete. live prices and news get layered on top of
-// this render in the price and news steps.
+// dashboard logic. holds the portfolio state, renders the summary and the
+// holding cards, and drives the add popup and the per-holding detail modal.
+// live prices and the graph/donut layer on top of this render.
 
 const state = {
   holdings: loadHoldings(), // [{ id, ticker, shares, cost }]
   quotes: {},               // ticker -> finnhub quote object
-  editingId: null,
-  editMode: false           // portfolio-level edit mode toggled from the top
+  modalId: null             // id of the holding open in the detail modal
 };
 
 // elements
-const form = document.getElementById("holding-form");
-const tickerInput = document.getElementById("ticker");
-const sharesInput = document.getElementById("shares");
-const costInput = document.getElementById("cost");
-const submitBtn = document.getElementById("form-submit");
-const cancelBtn = document.getElementById("form-cancel");
-const body = document.getElementById("holdings-body");
-const emptyMsg = document.getElementById("holdings-empty");
 const statusLine = document.getElementById("status-line");
-const editToggle = document.getElementById("edit-toggle");
+const holdingsCards = document.getElementById("holdings-cards");
+const holdingsEmpty = document.getElementById("holdings-empty");
+
+const openAddBtn = document.getElementById("open-add");
+const addModal = document.getElementById("add-modal");
+const addClose = document.getElementById("add-close");
+const addForm = document.getElementById("add-form");
+const addTicker = document.getElementById("add-ticker");
+const addShares = document.getElementById("add-shares");
+const addCost = document.getElementById("add-cost");
+const addStatus = document.getElementById("add-status");
+const addRecent = document.getElementById("add-recent");
+
+const holdingModal = document.getElementById("holding-modal");
+const holdingModalCard = document.getElementById("holding-modal-card");
 
 // ---- portfolio math -------------------------------------------------------
 
@@ -40,68 +45,36 @@ function gain(h) {
   return mv - costTotal(h);
 }
 
-// ---- rendering ------------------------------------------------------------
-
-function renderRow(h) {
-  const q = state.quotes[h.ticker];
+function gainPctVal(h) {
   const mv = marketValue(h);
-  const g = gain(h);
-  const hasQuote = q && typeof q.c === "number";
-
-  const editing = state.editMode;
-
-  const priceCell = hasQuote ? fmtMoney(q.c) : '<span class="price-loading">--</span>';
-  const dayCell = hasQuote
-    ? `<span class="move-chip" style="${moveTintStyle(q.dp)}">${fmtPct(q.dp)}</span>`
-    : '<span class="price-loading">--</span>';
-  const valueCell = mv === null ? '<span class="price-loading">--</span>' : fmtMoney(mv);
-  const gainCell = g === null
-    ? '<span class="price-loading">--</span>'
-    : `<span class="${moveClass(g)}">${fmtSignedMoney(g)}</span>`;
-
-  // in edit mode the shares and cost cells become inputs and a delete shows up.
-  // the ticker stays fixed since it is the key for the quote.
-  const sharesCell = editing
-    ? `<input class="row-input" type="number" step="any" min="0" data-id="${h.id}" data-field="shares" value="${h.shares}">`
-    : `${h.shares}`;
-  const costCell = editing
-    ? `<input class="row-input" type="number" step="any" min="0" data-id="${h.id}" data-field="cost" value="${h.cost}">`
-    : `${fmtMoney(h.cost)}`;
-  const actionsCell = editing
-    ? `<div class="row-actions"><button class="icon-btn danger" data-action="delete" data-id="${h.id}">delete</button></div>`
-    : "";
-
-  return `
-    <tr data-id="${h.id}"${editing ? ' class="is-editing"' : ""}>
-      <td class="col-ticker">${h.ticker}</td>
-      <td class="num">${sharesCell}</td>
-      <td class="num">${costCell}</td>
-      <td class="num">${priceCell}</td>
-      <td class="num">${dayCell}</td>
-      <td class="num">${valueCell}</td>
-      <td class="num">${gainCell}</td>
-      <td class="col-actions">${actionsCell}</td>
-    </tr>
-  `;
+  if (mv === null) return null;
+  const c = costTotal(h);
+  if (c <= 0) return null;
+  return ((mv - c) / c) * 100;
 }
 
-function renderTable() {
+// ---- holding cards --------------------------------------------------------
+
+function cardHtml(h) {
+  const q = state.quotes[h.ticker];
+  const hasQuote = q && typeof q.c === "number";
+  const dp = hasQuote ? q.dp : null;
+  const dayLabel = hasQuote ? fmtPct(dp) : "--";
+  return `
+    <button type="button" class="hcard" data-id="${h.id}" style="${cardGlazeStyle(dp)}">
+      <span class="hcard-ticker">${h.ticker}</span>
+      <span class="hcard-day">${dayLabel}</span>
+    </button>`;
+}
+
+function renderCards() {
   if (state.holdings.length === 0) {
-    body.innerHTML = "";
-    emptyMsg.hidden = false;
-    document.getElementById("holdings-table").style.display = "none";
-    // no rows to edit. drop out of edit mode and hide the toggle.
-    state.editMode = false;
-    editToggle.hidden = true;
-    editToggle.textContent = "edit";
+    holdingsCards.innerHTML = "";
+    holdingsEmpty.hidden = false;
     return;
   }
-  emptyMsg.hidden = true;
-  editToggle.hidden = false;
-  document.getElementById("holdings-table").style.display = "";
-  body.innerHTML = state.holdings.map(renderRow).join("");
-  // news for movers gets injected here in the news step.
-  if (typeof renderMoverNews === "function") renderMoverNews();
+  holdingsEmpty.hidden = true;
+  holdingsCards.innerHTML = state.holdings.map(cardHtml).join("");
 }
 
 function renderSummary() {
@@ -121,7 +94,6 @@ function renderSummary() {
       totalValue += mv;
       pricedCost += costTotal(h);
       const q = state.quotes[h.ticker];
-      // day change in dollars: shares * (current - previous close)
       if (typeof q.pc === "number") dayChange += h.shares * (q.c - q.pc);
     }
   }
@@ -151,101 +123,174 @@ function renderSummary() {
 }
 
 function render() {
-  renderTable();
+  renderCards();
   renderSummary();
-  // the performance graph and the donut track the same priced state as the summary.
+  // the graph and the donut track the same priced state as the summary.
   if (typeof drawPerformance === "function") drawPerformance();
   if (typeof drawDiversity === "function") drawDiversity();
+  // keep an open modal in sync with edits and price updates.
+  if (state.modalId) renderHoldingModal(state.modalId);
 }
 
-// ---- form: add / edit / delete -------------------------------------------
+// ---- add popup ------------------------------------------------------------
 
-function resetForm() {
-  state.editingId = null;
-  form.reset();
-  submitBtn.textContent = "add";
-  cancelBtn.hidden = true;
-  tickerInput.disabled = false;
+function openAddModal() {
+  addForm.reset();
+  addStatus.textContent = "";
+  addStatus.className = "add-status";
+  addRecent.innerHTML = "";
+  addModal.hidden = false;
+  requestAnimationFrame(() => addModal.classList.add("is-open"));
+  addTicker.focus();
+}
+
+function closeAddModal() {
+  addModal.classList.remove("is-open");
+  addModal.hidden = true;
+}
+
+openAddBtn.addEventListener("click", openAddModal);
+addClose.addEventListener("click", closeAddModal);
+addModal.addEventListener("click", (e) => { if (e.target === addModal) closeAddModal(); });
+
+addForm.addEventListener("submit", (e) => {
+  e.preventDefault();
+  const ticker = addTicker.value.trim().toUpperCase();
+  const shares = parseFloat(addShares.value);
+  const cost = parseFloat(addCost.value);
+
+  if (!ticker || !(shares > 0) || !(cost >= 0)) {
+    addStatus.textContent = "check the inputs. ticker, a positive share count, and a cost basis are all required.";
+    addStatus.className = "add-status error";
+    return;
+  }
+
+  const newHolding = { id: cryptoId(), ticker, shares, cost };
+  state.holdings.push(newHolding);
+  saveHoldings(state.holdings);
+  render();
+
+  // clear for the next one so you can add as many as you want.
+  addForm.reset();
+  addStatus.textContent = "";
+  addStatus.className = "add-status";
+  addTicker.focus();
+
+  // note it as added, and pull a quote so it prices in. a bad ticker gets
+  // flagged here once the quote comes back empty.
+  const chip = document.createElement("span");
+  chip.className = "recent-chip";
+  chip.textContent = ticker + " · " + shares + " sh";
+  addRecent.prepend(chip);
+  if (typeof refreshTicker === "function") refreshTicker(ticker);
+});
+
+// ---- holding detail modal -------------------------------------------------
+
+function openHoldingModal(id) {
+  state.modalId = id;
+  renderHoldingModal(id);
+  holdingModal.hidden = false;
+  requestAnimationFrame(() => holdingModal.classList.add("is-open"));
+}
+
+function closeHoldingModal() {
+  state.modalId = null;
+  holdingModal.classList.remove("is-open");
+  holdingModal.hidden = true;
+  holdingModalCard.innerHTML = "";
+}
+
+function renderHoldingModal(id) {
+  const h = state.holdings.find((x) => x.id === id);
+  if (!h) { closeHoldingModal(); return; }
+  const q = state.quotes[h.ticker];
+  const hasQuote = q && typeof q.c === "number";
+  const mv = marketValue(h);
+  const g = gain(h);
+  const gp = gainPctVal(h);
+
+  const price = hasQuote ? fmtMoney(q.c) : "--";
+  const day = hasQuote ? `<span class="${moveClass(q.dp)}">${fmtPct(q.dp)}</span>` : "--";
+  const gainStr = g === null
+    ? "--"
+    : `<span class="${moveClass(g)}">${fmtSignedMoney(g)}${gp !== null ? " (" + fmtPct(gp) + ")" : ""}</span>`;
+  const valueStr = mv === null ? "--" : fmtMoney(mv);
+
+  holdingModalCard.innerHTML = `
+    <button type="button" class="modal-close" data-action="close" aria-label="close">&times;</button>
+    <div class="hmodal-banner" style="background:${tickerGradient(h.ticker)}">
+      <span class="hmodal-ticker">${h.ticker}</span>
+    </div>
+    <div class="hmodal-body">
+      <div class="hmodal-edit">
+        <div class="field">
+          <label for="hm-shares">shares</label>
+          <input type="number" id="hm-shares" step="any" min="0" value="${h.shares}">
+        </div>
+        <div class="field">
+          <label for="hm-cost">cost / share</label>
+          <input type="number" id="hm-cost" step="any" min="0" value="${h.cost}">
+        </div>
+        <button type="button" class="btn btn-primary btn-sm" data-action="save">save</button>
+      </div>
+      <div class="hmodal-stats">
+        <div><span class="stat-label">price</span><span class="hstat">${price}</span></div>
+        <div><span class="stat-label">day</span><span class="hstat">${day}</span></div>
+        <div><span class="stat-label">gain/loss</span><span class="hstat">${gainStr}</span></div>
+        <div><span class="stat-label">value</span><span class="hstat">${valueStr}</span></div>
+      </div>
+      <button type="button" class="ask-news-btn" data-action="ask-news">ask ai for recent news on ${h.ticker}</button>
+      <div class="hmodal-news" id="hm-news"></div>
+      <button type="button" class="hmodal-delete" data-action="delete">delete holding</button>
+    </div>`;
+}
+
+function saveModalEdits(id) {
+  const h = state.holdings.find((x) => x.id === id);
+  if (!h) return;
+  const sharesEl = document.getElementById("hm-shares");
+  const costEl = document.getElementById("hm-cost");
+  const shares = parseFloat(sharesEl.value);
+  const cost = parseFloat(costEl.value);
+  if (shares > 0) h.shares = shares;
+  if (cost >= 0) h.cost = cost;
+  saveHoldings(state.holdings);
+  render(); // re-renders the modal too via state.modalId
 }
 
 function deleteHolding(id) {
   state.holdings = state.holdings.filter((h) => h.id !== id);
   saveHoldings(state.holdings);
-  if (state.editingId === id) resetForm();
   render();
 }
 
-form.addEventListener("submit", (e) => {
-  e.preventDefault();
-  const ticker = tickerInput.value.trim().toUpperCase();
-  const shares = parseFloat(sharesInput.value);
-  const cost = parseFloat(costInput.value);
-
-  if (!ticker || !(shares > 0) || !(cost >= 0)) {
-    setStatus("check the inputs. ticker, a positive share count, and a cost basis are all required.", true);
-    return;
-  }
-
-  if (state.editingId) {
-    const h = state.holdings.find((x) => x.id === state.editingId);
-    if (h) { h.shares = shares; h.cost = cost; }
-  } else {
-    const newHolding = { id: cryptoId(), ticker, shares, cost };
-    state.holdings.push(newHolding);
-  }
-
-  saveHoldings(state.holdings);
-  const editedTicker = ticker;
-  resetForm();
-  render();
-  setStatus("");
-
-  // pull a fresh quote for the added / edited ticker if the price layer is loaded.
-  if (typeof refreshTicker === "function") refreshTicker(editedTicker);
+holdingsCards.addEventListener("click", (e) => {
+  const card = e.target.closest(".hcard");
+  if (!card) return;
+  openHoldingModal(card.dataset.id);
 });
 
-cancelBtn.addEventListener("click", resetForm);
-
-body.addEventListener("click", (e) => {
+holdingModal.addEventListener("click", (e) => {
+  if (e.target === holdingModal) { closeHoldingModal(); return; }
   const btn = e.target.closest("[data-action]");
   if (!btn) return;
-  const id = btn.dataset.id;
-  if (btn.dataset.action === "delete") deleteHolding(id);
+  const id = state.modalId;
+  const action = btn.dataset.action;
+  if (action === "close") closeHoldingModal();
+  else if (action === "save") saveModalEdits(id);
+  else if (action === "delete") { deleteHolding(id); closeHoldingModal(); }
+  else if (action === "ask-news") {
+    const h = state.holdings.find((x) => x.id === id);
+    if (h && typeof askStockNews === "function") askStockNews(h.ticker, document.getElementById("hm-news"));
+  }
 });
 
-// ---- portfolio-level edit mode -------------------------------------------
-
-// read every row input and write the values back to the holdings. shares must
-// be positive and cost non-negative, otherwise that field keeps its old value.
-function commitEdits() {
-  const inputs = body.querySelectorAll(".row-input");
-  const byId = {};
-  inputs.forEach((inp) => {
-    (byId[inp.dataset.id] = byId[inp.dataset.id] || {})[inp.dataset.field] = inp.value;
-  });
-  for (const h of state.holdings) {
-    const v = byId[h.id];
-    if (!v) continue;
-    const shares = parseFloat(v.shares);
-    const cost = parseFloat(v.cost);
-    if (shares > 0) h.shares = shares;
-    if (cost >= 0) h.cost = cost;
-  }
-  saveHoldings(state.holdings);
-}
-
-editToggle.addEventListener("click", () => {
-  if (state.editMode) {
-    commitEdits();
-    state.editMode = false;
-    editToggle.textContent = "edit";
-    setStatus("");
-  } else {
-    state.editMode = true;
-    editToggle.textContent = "done";
-    setStatus("editing. change shares or cost, then click done to save.");
-  }
-  render();
+// escape closes whichever modal is open.
+document.addEventListener("keydown", (e) => {
+  if (e.key !== "Escape") return;
+  if (!holdingModal.hidden) closeHoldingModal();
+  else if (!addModal.hidden) closeAddModal();
 });
 
 // ---- helpers --------------------------------------------------------------
@@ -310,13 +355,9 @@ async function loadPrices() {
   } else {
     setStatus(stalenessLabel() + ". updated " + new Date().toLocaleTimeString("en-US"));
   }
-
-  // layer mover news on top once prices are in.
-  if (typeof loadMoverNews === "function") loadMoverNews();
 }
 
-// used after adding or editing a single holding, so we do not refetch the whole
-// portfolio for one new ticker.
+// used after adding a single holding, so we do not refetch the whole portfolio.
 async function refreshTicker(ticker) {
   try {
     const q = await fetchQuote(ticker);
@@ -324,7 +365,6 @@ async function refreshTicker(ticker) {
       state.quotes[ticker] = q;
       render();
       setStatus(stalenessLabel() + ". updated " + new Date().toLocaleTimeString("en-US"));
-      if (typeof loadMoverNews === "function") loadMoverNews();
     } else {
       setStatus("no price found for " + ticker + ". double check the ticker.", true);
     }
@@ -374,7 +414,7 @@ keySave.addEventListener("click", () => {
 
 // ---- boot -----------------------------------------------------------------
 
-// wait for load so the news and projection layers are defined before we call
+// wait for load so the news, graph, and donut layers are defined before we call
 // into them from the price load.
 window.addEventListener("load", () => {
   if (refreshKeyBar()) {

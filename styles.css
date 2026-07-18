@@ -13,13 +13,13 @@
   --accent-pale: #e6f3ec;
   --accent-rgb: 22, 121, 76;
 
-  /* data hues. green up, red down, blue neutral. deep + pale drive the gradients. */
+  /* data hues. green up, red down, blue neutral. deep drives the gradients. */
   --up: #12864f;
   --up-deep: #0b5d37;
   --up-rgb: 18, 134, 79;
   --down: #c62740;
   --down-deep: #8f1528;
-  --down-rgb: 198, 39, 64;
+  --down-rgb: 198, 39, 58;
   --neutral: #2f6df6;
   --neutral-deep: #1e49b8;
   --neutral-rgb: 47, 109, 246;
@@ -56,7 +56,7 @@ main {
 .topbar {
   max-width: 920px;
   margin: 0 auto;
-  padding: 3.5rem 1.5rem 2.25rem;
+  padding: 3.5rem 1.5rem 2rem;
 }
 .brand h1 {
   font-size: 1.2rem;
@@ -64,10 +64,16 @@ main {
   letter-spacing: -0.01em;
   margin: 0;
 }
-.tagline {
-  margin: 0.4rem 0 0;
-  color: var(--muted);
-  font-size: 0.9rem;
+
+/* section titles: uppercase, gray, letter-spaced. the label look, everywhere. */
+.section-title,
+.modal-title {
+  font-size: 0.78rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--faint);
+  margin: 0 0 1.5rem;
 }
 
 /* cards: one radius, soft shadow, no border. generous padding. */
@@ -79,7 +85,7 @@ main {
   padding: 2.25rem;
 }
 
-/* section labels: small, uppercase, letter-spaced, muted */
+/* summary / hero */
 .summary-label,
 .stat-label {
   color: var(--faint);
@@ -94,8 +100,6 @@ main {
   justify-content: space-between;
   gap: 1rem;
 }
-
-/* the hero figure. big, bold, tight. the primary visual weight on the page. */
 .summary-value {
   font-size: clamp(3.5rem, 7vw, 4.5rem); /* 56px to 72px */
   font-weight: 700;
@@ -125,7 +129,6 @@ main {
   margin-top: 0.4rem;
   font-variant-numeric: tabular-nums;
 }
-/* total gain/loss reads as a strong secondary figure under the hero */
 .stat-value-lg {
   font-size: 2.5rem; /* 40px */
   font-weight: 700;
@@ -159,44 +162,11 @@ main {
 }
 .key-row input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-pale); }
 
-/* plain value colors for text figures (gain/loss dollars) */
+/* plain value colors */
 .up { color: var(--up); }
 .down { color: var(--down); }
 
-/* the magnitude chip. a real 135deg gradient whose depth scales with the move.
-   the gradient string is built in format.js off the live finnhub dp. */
-.move-chip {
-  display: inline-block;
-  padding: 0.25rem 0.6rem;
-  border-radius: 999px;
-  font-variant-numeric: tabular-nums;
-  font-weight: 600;
-  font-size: 0.85rem;
-  line-height: 1.2;
-}
-
-/* panels */
-.panel h2 {
-  font-size: 0.98rem;
-  font-weight: 600;
-  letter-spacing: 0.01em;
-  margin: 0 0 1.25rem;
-}
-.panel-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-  margin-bottom: 1.25rem;
-}
-.panel-head h2 { margin: 0; }
-.panel-note {
-  margin: -0.75rem 0 1.5rem;
-  color: var(--muted);
-  font-size: 0.85rem;
-}
-
-/* buttons: accent-anchored primary, soft ghost, real hover states */
+/* buttons */
 .btn {
   font-family: inherit;
   font-size: 0.9rem;
@@ -219,16 +189,7 @@ main {
 .btn-sm { padding: 0.4rem 0.85rem; font-size: 0.82rem; }
 .btn-sm:disabled { opacity: 0.5; cursor: default; }
 
-/* add-holding form */
-.holding-form {
-  display: flex;
-  gap: 1rem;
-  align-items: flex-end;
-  flex-wrap: wrap;
-  padding-bottom: 1.75rem;
-  margin-bottom: 0.5rem;
-  border-bottom: 1px solid var(--line);
-}
+/* form fields */
 .field { display: flex; flex-direction: column; gap: 0.4rem; }
 .field label { font-size: 0.78rem; color: var(--muted); }
 .field input[type="text"],
@@ -240,227 +201,12 @@ main {
   border-radius: 10px;
   background: var(--card);
   color: var(--ink);
-  width: 8.5rem;
+  width: 100%;
   outline: none;
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 .field input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-pale); }
-#ticker { text-transform: uppercase; font-family: var(--mono); }
-.field-actions { flex-direction: row; gap: 0.5rem; }
-
-/* holdings table */
-.table-scroll { overflow-x: auto; }
-.holdings {
-  width: 100%;
-  min-width: 620px; /* below this the table scrolls inside .table-scroll rather than crushing columns */
-  border-collapse: collapse;
-  font-size: 0.92rem;
-  margin-top: 1.25rem;
-}
-.holdings th {
-  text-align: left;
-  font-weight: 600;
-  font-size: 0.72rem;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: var(--faint);
-  padding: 0.55rem 0.75rem;
-  border-bottom: 1px solid var(--line);
-  white-space: nowrap;
-}
-.holdings td {
-  padding: 0.9rem 0.75rem;
-  border-bottom: 1px solid var(--line);
-  vertical-align: middle;
-}
-.holdings .num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
-.holdings .col-ticker { font-family: var(--mono); font-weight: 600; }
-.holdings tr:last-child td { border-bottom: none; }
-.row-actions { display: flex; gap: 0.5rem; justify-content: flex-end; }
-.icon-btn {
-  font-family: inherit;
-  font-size: 0.82rem;
-  background: none;
-  border: none;
-  color: var(--muted);
-  cursor: pointer;
-  padding: 0.25rem 0.4rem;
-  border-radius: 8px;
-  transition: color 0.12s ease, background 0.12s ease;
-}
-.icon-btn:hover { color: var(--accent); background: var(--bg); }
-.icon-btn.danger:hover { color: var(--down); }
-
-/* inline edit inputs, shown only in edit mode */
-.row-input {
-  font-family: inherit;
-  font-size: 0.9rem;
-  padding: 0.35rem 0.5rem;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  background: var(--card);
-  color: var(--ink);
-  width: 6.5rem;
-  text-align: right;
-  outline: none;
-  font-variant-numeric: tabular-nums;
-  transition: border-color 0.15s ease, box-shadow 0.15s ease;
-}
-.row-input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-pale); }
-.holdings tr.is-editing td { background: var(--accent-pale); }
-
-.price-loading { color: var(--faint); }
-
-/* news under a mover */
-.news-row td { padding-top: 0; }
-.mover-news {
-  background: var(--bg);
-  border-radius: var(--radius);
-  padding: 1rem 1.15rem;
-  margin: 0 0 0.6rem;
-}
-.mover-news .mover-tag {
-  font-size: 0.78rem;
-  color: var(--muted);
-  margin-bottom: 0.5rem;
-}
-.mover-blurb {
-  margin: 0 0 0.6rem;
-  padding: 0.6rem 0.75rem;
-  background: var(--card);
-  border-radius: 10px;
-  box-shadow: var(--shadow);
-  font-size: 0.86rem;
-  line-height: 1.45;
-}
-.blurb-label {
-  display: block;
-  font-size: 0.66rem;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: var(--accent);
-  font-weight: 600;
-  margin-bottom: 0.2rem;
-}
-.blurb-text { color: var(--ink); }
-.blurb-loading { color: var(--faint); font-style: italic; }
-.mover-news ul { list-style: none; margin: 0; padding: 0; }
-.mover-news li { padding: 0.3rem 0; font-size: 0.88rem; }
-.mover-news a { color: var(--ink); text-decoration: none; }
-.mover-news a:hover { text-decoration: underline; }
-.mover-news .src { color: var(--faint); font-size: 0.78rem; }
-
-.empty { color: var(--muted); font-size: 0.9rem; padding: 1.5rem 0; text-align: center; }
-
-/* diversity donut */
-.diversity-wrap {
-  display: flex;
-  align-items: center;
-  gap: 2.5rem;
-  flex-wrap: wrap;
-}
-.donut-hold { flex: 0 0 auto; }
-#diversity-chart { width: 200px; height: 200px; display: block; }
-.diversity-legend {
-  flex: 1 1 12rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.7rem;
-  min-width: 12rem;
-}
-.legend-item {
-  display: flex;
-  align-items: center;
-  gap: 0.6rem;
-  font-size: 0.9rem;
-}
-.legend-swatch {
-  flex: 0 0 auto;
-  width: 0.85rem;
-  height: 0.85rem;
-  border-radius: 4px;
-}
-.legend-ticker { font-family: var(--mono); font-weight: 600; }
-.legend-pct { margin-left: auto; color: var(--muted); font-variant-numeric: tabular-nums; }
-
-/* worth a look: soft-shadow cards, gradient pills, animated expand, hover lift */
-#worth-a-look { display: flex; flex-direction: column; gap: 0.7rem; }
-.wal-card {
-  background: var(--card);
-  border-radius: var(--radius);
-  box-shadow: var(--shadow);
-  overflow: hidden;
-  transition: box-shadow 0.18s ease, transform 0.12s ease;
-}
-.wal-card:hover { box-shadow: var(--shadow-hover); transform: translateY(-1px); }
-.wal-card.is-open { box-shadow: var(--shadow-hover); }
-
-.wal-summary {
-  width: 100%;
-  display: flex;
-  align-items: center;
-  gap: 0.85rem;
-  background: none;
-  border: none;
-  text-align: left;
-  cursor: pointer;
-  padding: 1rem 1.15rem;
-  font-family: inherit;
-}
-/* interest tag: soft accent gradient pill with dark text */
-.wal-tag {
-  flex: 0 0 auto;
-  font-size: 0.68rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: var(--accent-deep);
-  background: linear-gradient(135deg, var(--accent-pale), #d2ecdd);
-  padding: 0.22rem 0.6rem;
-  border-radius: 999px;
-  white-space: nowrap;
-}
-.wal-headline { flex: 1 1 auto; color: var(--ink); font-size: 0.94rem; }
-.wal-caret { flex: 0 0 auto; color: var(--faint); font-size: 1.15rem; line-height: 1; }
-
-/* animated expand. the js toggles .is-open on the card and the hidden attr on
-   the detail. neutralize hidden's display:none here so max-height can animate. */
-.wal-detail {
-  max-height: 0;
-  opacity: 0;
-  overflow: hidden;
-  padding: 0 1.15rem;
-  transition: max-height 0.22s ease, opacity 0.2s ease, padding 0.22s ease;
-}
-.wal-detail[hidden] { display: block; }
-.wal-card.is-open .wal-detail {
-  max-height: 520px;
-  opacity: 1;
-  padding: 0.25rem 1.15rem 1.15rem;
-}
-
-/* classification: saturated gradient-filled pill, white text */
-.wal-class {
-  display: inline-block;
-  margin: 0.85rem 0 0.7rem;
-  font-size: 0.7rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  padding: 0.28rem 0.7rem;
-  border-radius: 999px;
-  color: #fff;
-}
-.wal-class.s-bullish { background: linear-gradient(135deg, #2ba368, var(--up-deep)); }
-.wal-class.s-bearish { background: linear-gradient(135deg, #e0455e, var(--down-deep)); }
-.wal-class.s-neutral { background: linear-gradient(135deg, #5b8bf8, var(--neutral-deep)); }
-.wal-full { margin: 0 0 0.5rem; font-size: 0.96rem; color: var(--ink); font-weight: 600; }
-.wal-full-summary { margin: 0 0 0.85rem; font-size: 0.88rem; color: var(--muted); }
-.wal-meta { display: flex; gap: 0.85rem; align-items: center; font-size: 0.82rem; }
-.wal-meta .src { color: var(--faint); }
-.wal-meta a { color: var(--accent); text-decoration: none; font-weight: 500; }
-.wal-meta a:hover { text-decoration: underline; }
-.wal-disclaimer { margin: 0.85rem 0 0; font-size: 0.76rem; color: var(--faint); }
+#add-ticker { text-transform: uppercase; font-family: var(--mono); }
 
 /* performance graph */
 .perf-head {
@@ -470,8 +216,8 @@ main {
   gap: 1rem;
   margin-bottom: 1.25rem;
 }
-.perf-head h2 { margin: 0; }
-.tf-select { display: flex; gap: 0.25rem; }
+.perf-head .section-title { margin: 0; }
+.tf-select { display: flex; gap: 0.25rem; flex-wrap: wrap; }
 .tf-btn {
   font-family: inherit;
   font-size: 0.82rem;
@@ -488,6 +234,329 @@ main {
 .chart-wrap { width: 100%; }
 #perf-chart { width: 100%; height: auto; display: block; }
 
+/* diversity donut, inside holdings */
+.diversity-wrap {
+  display: flex;
+  align-items: center;
+  gap: 2.5rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.5rem;
+}
+.donut-hold { flex: 0 0 auto; }
+#diversity-chart { width: 190px; height: 190px; display: block; }
+.diversity-legend {
+  flex: 1 1 12rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+  min-width: 12rem;
+}
+.legend-item { display: flex; align-items: center; gap: 0.6rem; font-size: 0.9rem; }
+.legend-swatch { flex: 0 0 auto; width: 0.85rem; height: 0.85rem; border-radius: 4px; }
+.legend-ticker { font-family: var(--mono); font-weight: 600; }
+.legend-pct { margin-left: auto; color: var(--muted); font-variant-numeric: tabular-nums; }
+
+/* add row */
+.add-row { margin-top: 1.75rem; }
+.btn-add {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-family: inherit;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--accent-deep);
+  background: linear-gradient(135deg, var(--accent-pale), #d2ecdd);
+  border: 1px dashed rgba(var(--accent-rgb), 0.4);
+  padding: 0.6rem 1.15rem;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: box-shadow 0.15s ease, transform 0.1s ease;
+}
+.btn-add:hover { box-shadow: 0 4px 12px rgba(var(--accent-rgb), 0.18); transform: translateY(-1px); }
+.btn-add .plus { font-size: 1.15rem; line-height: 1; font-weight: 700; }
+
+/* holding score cards */
+.holdings-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 0.85rem;
+  margin-top: 1.5rem;
+}
+.hcard {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.4rem;
+  min-height: 112px;
+  padding: 1.1rem 1.15rem;
+  border: none;
+  border-radius: var(--radius);
+  cursor: pointer;
+  font-family: inherit;
+  text-align: left;
+  box-shadow: var(--shadow);
+  transition: transform 0.12s ease, box-shadow 0.18s ease;
+}
+.hcard:hover { transform: translateY(-2px); box-shadow: var(--shadow-hover); }
+.hcard-ticker {
+  font-family: var(--mono);
+  font-weight: 700;
+  font-size: 1.2rem;
+  color: var(--ink);
+  letter-spacing: -0.01em;
+}
+.hcard-day {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: var(--ink);
+  opacity: 0.75;
+  margin-top: auto;
+}
+
+.empty { color: var(--muted); font-size: 0.9rem; padding: 1.5rem 0; text-align: center; }
+
+/* modals */
+/* solid dim, no backdrop-filter (backdrop-filter makes the opaque card render
+   see-through in chromium). the dim is solid the moment the modal shows. only
+   the card animates in. animating opacity on the overlay while the card has a
+   transform layer leaves the card stuck translucent, so keep them separate. */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  background: rgba(18, 20, 23, 0.55);
+}
+.modal-overlay[hidden] { display: none; }
+.modal-card {
+  position: relative;
+  background: var(--card);
+  border-radius: 20px;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.28), 0 4px 12px rgba(0, 0, 0, 0.12);
+  width: 100%;
+  max-width: 420px;
+  max-height: 88vh;
+  overflow: auto;
+  /* no opacity or transform on the card. either one promotes it to a compositing
+     layer that this renderer paints partly translucent, letting the page bleed
+     through. the overlay dim fades instead, below. */
+}
+/* fade the whole modal in via the dim layer, which has no opaque content to
+   composite wrong. */
+.modal-overlay { animation: modal-in 0.18s ease; }
+@keyframes modal-in { from { opacity: 0; } to { opacity: 1; } }
+.modal-close {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.85rem;
+  z-index: 2;
+  width: 2rem;
+  height: 2rem;
+  border: none;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.8);
+  color: var(--ink);
+  font-size: 1.35rem;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.12s ease;
+}
+.modal-close:hover { background: #fff; }
+
+/* add popup */
+.add-card { padding: 1.6rem; max-width: 380px; }
+#add-form { display: flex; flex-direction: column; gap: 0.9rem; }
+#add-form .btn-primary { margin-top: 0.35rem; }
+.add-status { font-size: 0.82rem; color: var(--muted); margin-top: 0.7rem; min-height: 1em; }
+.add-status.error { color: var(--down); }
+.add-recent { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-top: 0.85rem; }
+.recent-chip {
+  font-size: 0.75rem;
+  font-family: var(--mono);
+  background: var(--accent-pale);
+  color: var(--accent-deep);
+  padding: 0.22rem 0.6rem;
+  border-radius: 999px;
+}
+
+/* holding detail modal */
+.hmodal-banner {
+  height: 130px;
+  border-radius: 20px 20px 0 0;
+  display: flex;
+  align-items: flex-end;
+  padding: 1.15rem 1.4rem;
+}
+.hmodal-ticker {
+  font-family: var(--mono);
+  font-weight: 700;
+  font-size: 1.9rem;
+  color: #fff;
+  letter-spacing: -0.01em;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.28);
+}
+.hmodal-body { padding: 1.4rem; display: flex; flex-direction: column; gap: 1.2rem; }
+.hmodal-edit { display: flex; gap: 0.75rem; align-items: flex-end; }
+.hmodal-edit .field { flex: 1 1 auto; }
+.hmodal-stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  padding-top: 1.1rem;
+  border-top: 1px solid var(--line);
+}
+.hmodal-stats > div { display: flex; flex-direction: column; gap: 0.25rem; }
+.hstat { font-size: 1.1rem; font-weight: 600; font-variant-numeric: tabular-nums; }
+.ask-news-btn {
+  font-family: inherit;
+  font-size: 0.88rem;
+  font-weight: 500;
+  padding: 0.7rem 1rem;
+  border-radius: 10px;
+  cursor: pointer;
+  color: #fff;
+  border: none;
+  background: linear-gradient(135deg, var(--accent), var(--accent-deep));
+  box-shadow: 0 1px 2px rgba(var(--accent-rgb), 0.35);
+  transition: box-shadow 0.15s ease, transform 0.1s ease;
+}
+.ask-news-btn:hover { box-shadow: 0 4px 12px rgba(var(--accent-rgb), 0.3); transform: translateY(-1px); }
+.hmodal-news:empty { display: none; }
+.hm-ai {
+  background: var(--bg);
+  border-radius: 10px;
+  padding: 0.65rem 0.8rem;
+  margin-bottom: 0.6rem;
+  font-size: 0.86rem;
+  line-height: 1.45;
+}
+.blurb-label {
+  display: block;
+  font-size: 0.66rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--accent);
+  font-weight: 600;
+  margin-bottom: 0.2rem;
+}
+.blurb-text { color: var(--ink); }
+.hm-news-list { list-style: none; margin: 0.4rem 0 0; padding: 0; }
+.hm-news-list li { padding: 0.4rem 0; font-size: 0.85rem; border-top: 1px solid var(--line); }
+.hm-news-list li:first-child { border-top: none; }
+.hm-news-list a { color: var(--ink); text-decoration: none; }
+.hm-news-list a:hover { text-decoration: underline; }
+.hm-news-list .src { color: var(--faint); font-size: 0.76rem; }
+.hm-news-loading, .hm-news-empty { color: var(--faint); font-size: 0.85rem; font-style: italic; margin: 0.5rem 0 0; }
+.hmodal-delete {
+  align-self: flex-start;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--faint);
+  font-family: inherit;
+  font-size: 0.82rem;
+  padding: 0.2rem 0;
+}
+.hmodal-delete:hover { color: var(--down); }
+
+/* worth a look */
+#worth-a-look { display: flex; flex-direction: column; gap: 0.5rem; }
+.wal-card {
+  background: var(--card);
+  border-radius: 12px;
+  box-shadow: var(--shadow);
+  overflow: hidden;
+  transition: box-shadow 0.18s ease, transform 0.12s ease;
+}
+.wal-card:hover { box-shadow: var(--shadow-hover); transform: translateY(-1px); }
+.wal-card.is-open { box-shadow: var(--shadow-hover); }
+.wal-row {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  background: none;
+  border: none;
+  text-align: left;
+  cursor: pointer;
+  padding: 0.9rem 1.1rem;
+  font-family: inherit;
+}
+.wal-dot { flex: 0 0 auto; width: 0.7rem; height: 0.7rem; border-radius: 999px; }
+.wal-dot.s-bullish { background: linear-gradient(135deg, #2ba368, var(--up-deep)); }
+.wal-dot.s-bearish { background: linear-gradient(135deg, #e0455e, var(--down-deep)); }
+.wal-dot.s-neutral { background: linear-gradient(135deg, #5b8bf8, var(--neutral-deep)); }
+.wal-headline { flex: 1 1 auto; color: var(--ink); font-size: 0.92rem; }
+.wal-tag {
+  flex: 0 0 auto;
+  font-size: 0.64rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--faint);
+  white-space: nowrap;
+}
+.wal-detail {
+  padding: 0 1.1rem;
+  max-height: 0;
+  opacity: 0;
+  overflow: hidden;
+  transition: max-height 0.22s ease, opacity 0.2s ease, padding 0.22s ease;
+}
+.wal-detail[hidden] { display: block; }
+.wal-card.is-open .wal-detail { max-height: 400px; opacity: 1; padding: 0 1.1rem 1rem; }
+.wal-summary-text { margin: 0.15rem 0 0.75rem; font-size: 0.86rem; color: var(--muted); }
+.wal-meta { display: flex; align-items: center; gap: 0.8rem; font-size: 0.8rem; }
+.wal-class {
+  font-size: 0.64rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+  color: #fff;
+}
+.wal-class.s-bullish { background: linear-gradient(135deg, #2ba368, var(--up-deep)); }
+.wal-class.s-bearish { background: linear-gradient(135deg, #e0455e, var(--down-deep)); }
+.wal-class.s-neutral { background: linear-gradient(135deg, #5b8bf8, var(--neutral-deep)); }
+.wal-meta .src { color: var(--faint); }
+.wal-meta a { color: var(--accent); text-decoration: none; font-weight: 500; margin-left: auto; }
+.wal-meta a:hover { text-decoration: underline; }
+
+/* ask box */
+.ask-box { margin-top: 1.75rem; padding-top: 1.75rem; border-top: 1px solid var(--line); }
+.ask-head { display: flex; align-items: baseline; gap: 0.6rem; margin-bottom: 0.9rem; }
+.ask-title { font-size: 0.78rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.1em; color: var(--faint); }
+.ask-sub { font-size: 0.78rem; color: var(--faint); }
+.ask-log { display: flex; flex-direction: column; gap: 0.85rem; margin-bottom: 0.9rem; }
+.ask-log:empty { display: none; }
+.ask-q { font-size: 0.86rem; font-weight: 600; color: var(--ink); }
+.ask-a { font-size: 0.88rem; color: var(--muted); margin-top: 0.2rem; line-height: 1.5; }
+.ask-a.note { color: var(--accent-deep); }
+#ask-form { display: flex; gap: 0.5rem; }
+#ask-form input {
+  flex: 1 1 auto;
+  font-family: inherit;
+  font-size: 0.9rem;
+  padding: 0.6rem 0.8rem;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--card);
+  color: var(--ink);
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+#ask-form input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-pale); }
+
 /* footer */
 .site-footer {
   max-width: 920px;
@@ -503,7 +572,6 @@ main {
   .topbar { padding-top: 2.5rem; }
   .summary, .panel { padding: 1.6rem; }
   .summary-grid { grid-template-columns: 1fr; gap: 1.25rem; }
-  .field input[type="text"], .field input[type="number"] { width: 100%; }
-  .field { flex: 1 1 8rem; }
   .diversity-wrap { gap: 1.5rem; justify-content: center; }
+  .holdings-cards { grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); }
 }

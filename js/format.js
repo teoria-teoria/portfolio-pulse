@@ -46,6 +46,32 @@ function moveTintStyle(dp) {
   return `background: linear-gradient(135deg, rgba(${rgb}, ${light}), rgba(${rgb}, ${deep})); color: ${fg};`;
 }
 
+// glaze for a holding preview card. green when the day is up, red when down,
+// deeper with the size of the move. kept soft so the dark ticker text on top
+// stays readable. neutral when there is no quote yet.
+function cardGlazeStyle(dp) {
+  if (dp === null || dp === undefined || Number.isNaN(dp)) {
+    return "background: linear-gradient(135deg, #ffffff, #f2f2f1);";
+  }
+  const intensity = Math.min(Math.abs(dp) / MOVE_FULL_AT, 1); // 0..1, same scale as the chip
+  const rgb = dp >= 0 ? "var(--up-rgb)" : "var(--down-rgb)";
+  const light = (0.06 + intensity * 0.14).toFixed(3);
+  const deep = (0.16 + intensity * 0.45).toFixed(3);
+  return `background: linear-gradient(135deg, rgba(${rgb}, ${light}), rgba(${rgb}, ${deep}));`;
+}
+
+// each stock gets its own signature gradient for the detail modal. deterministic
+// off the ticker so it is stable, decorative only, it means nothing.
+function tickerGradient(ticker) {
+  let hash = 0;
+  for (let i = 0; i < ticker.length; i++) {
+    hash = (hash * 31 + ticker.charCodeAt(i)) % 360;
+  }
+  const h1 = hash;
+  const h2 = (hash + 38) % 360;
+  return `linear-gradient(135deg, hsl(${h1} 58% 44%), hsl(${h2} 62% 28%))`;
+}
+
 // yyyy-mm-dd for a date in america/new_york. en-CA gives the iso-ish order.
 function isoDateET(date) {
   return new Intl.DateTimeFormat("en-CA", {

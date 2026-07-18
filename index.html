@@ -13,7 +13,6 @@
   <header class="topbar">
     <div class="brand">
       <h1>portfolio pulse</h1>
-      <p class="tagline">a manual stock tracker with live prices and news context</p>
     </div>
   </header>
 
@@ -51,7 +50,7 @@
         </div>
       </div>
       <div class="key-bar" id="ai-key-bar" hidden>
-        <span class="key-note">optional. add an openai key to get a one-line plain-english read on why a mover moved. gpt-5-nano, cheap. stays in this browser only, sent only to openai. without it you still see the raw headlines.</span>
+        <span class="key-note">optional. add an openai key for the ai read on movers and the ask box. gpt-5-nano, cheap. stays in this browser only, sent only to openai.</span>
         <div class="key-row">
           <input type="text" id="ai-key-input" placeholder="openai api key" autocomplete="off">
           <button type="button" id="ai-key-save" class="btn btn-primary btn-sm">save key</button>
@@ -59,9 +58,25 @@
       </div>
     </section>
 
-    <section class="panel" aria-label="allocation" id="diversity-panel">
-      <h2>diversity</h2>
-      <p class="panel-note">allocation by current market value. shares times current price, not cost basis.</p>
+    <section class="panel" aria-label="performance" id="performance-panel">
+      <div class="perf-head">
+        <h2 class="section-title">performance</h2>
+        <div class="tf-select" role="group" aria-label="timeframe">
+          <button type="button" class="tf-btn is-active" data-tf="day">day</button>
+          <button type="button" class="tf-btn" data-tf="week">week</button>
+          <button type="button" class="tf-btn" data-tf="month">month</button>
+          <button type="button" class="tf-btn" data-tf="quarter">3mo</button>
+        </div>
+      </div>
+      <div class="chart-wrap">
+        <canvas id="perf-chart" width="820" height="300"></canvas>
+      </div>
+      <p class="empty" id="perf-empty" hidden>add a holding and load prices to see the performance line.</p>
+    </section>
+
+    <section class="panel" aria-label="holdings" id="holdings-panel">
+      <h2 class="section-title">holdings</h2>
+
       <div class="diversity-wrap">
         <div class="donut-hold">
           <canvas id="diversity-chart" width="260" height="260"></canvas>
@@ -69,72 +84,32 @@
         <div id="diversity-legend" class="diversity-legend"></div>
       </div>
       <p class="empty" id="diversity-empty" hidden>add holdings and load prices to see your allocation.</p>
-    </section>
 
-    <section class="panel" aria-label="performance" id="performance-panel">
-      <div class="perf-head">
-        <h2>performance</h2>
-        <div class="tf-select" role="group" aria-label="timeframe">
-          <button type="button" class="tf-btn is-active" data-tf="day">day</button>
-          <button type="button" class="tf-btn" data-tf="week">week</button>
-          <button type="button" class="tf-btn" data-tf="month">month</button>
-        </div>
+      <div class="add-row">
+        <button type="button" id="open-add" class="btn-add" aria-label="add a holding">
+          <span class="plus">+</span><span>add holding</span>
+        </button>
       </div>
-      <p class="panel-note">solid is to date, dashed is projected. the projection carries the latest observed move an equal window forward. an estimate, not advice.</p>
-      <div class="chart-wrap">
-        <canvas id="perf-chart" width="820" height="300"></canvas>
-      </div>
-      <p class="empty" id="perf-empty" hidden>add a holding and load prices to see the performance line.</p>
-    </section>
 
-    <section class="panel" aria-label="add a holding">
-      <div class="panel-head">
-        <h2>holdings</h2>
-        <button type="button" id="edit-toggle" class="btn btn-ghost btn-sm" hidden>edit</button>
-      </div>
-      <form id="holding-form" class="holding-form" autocomplete="off">
-        <div class="field">
-          <label for="ticker">ticker</label>
-          <input type="text" id="ticker" placeholder="AAPL" maxlength="12" required>
-        </div>
-        <div class="field">
-          <label for="shares">shares</label>
-          <input type="number" id="shares" placeholder="10" step="any" min="0" required>
-        </div>
-        <div class="field">
-          <label for="cost">cost basis / share</label>
-          <input type="number" id="cost" placeholder="150.00" step="any" min="0" required>
-        </div>
-        <div class="field field-actions">
-          <button type="submit" id="form-submit" class="btn btn-primary">add</button>
-          <button type="button" id="form-cancel" class="btn btn-ghost" hidden>cancel</button>
-        </div>
-      </form>
-
-      <div class="table-scroll">
-        <table class="holdings" id="holdings-table">
-          <thead>
-            <tr>
-              <th class="col-ticker">ticker</th>
-              <th class="num">shares</th>
-              <th class="num">cost / sh</th>
-              <th class="num">price</th>
-              <th class="num">day</th>
-              <th class="num">value</th>
-              <th class="num">gain/loss</th>
-              <th class="col-actions"></th>
-            </tr>
-          </thead>
-          <tbody id="holdings-body"></tbody>
-        </table>
-      </div>
-      <p class="empty" id="holdings-empty" hidden>no holdings yet. add one above to get started.</p>
+      <div class="holdings-cards" id="holdings-cards"></div>
+      <p class="empty" id="holdings-empty" hidden>no holdings yet. hit + to add one.</p>
     </section>
 
     <section class="panel" aria-label="worth a look" id="worth-a-look-panel">
-      <h2>worth a look</h2>
-      <p class="panel-note">market headlines matched against a few interest tags. click one to read the classification. informational surfacing only, not advice.</p>
+      <h2 class="section-title">worth a look</h2>
       <div id="worth-a-look"></div>
+
+      <div class="ask-box">
+        <div class="ask-head">
+          <span class="ask-title">ask</span>
+          <span class="ask-sub">quick answers. not advice.</span>
+        </div>
+        <div class="ask-log" id="ask-log"></div>
+        <form id="ask-form" autocomplete="off">
+          <input type="text" id="ask-input" placeholder="e.g. sell right after buying, do i owe capital gains?">
+          <button type="submit" class="btn btn-primary btn-sm">ask</button>
+        </form>
+      </div>
     </section>
 
   </main>
@@ -142,6 +117,36 @@
   <footer class="site-footer">
     <p>manual-entry tool. not connected to any brokerage. prices and news from finnhub.</p>
   </footer>
+
+  <!-- add holdings popup -->
+  <div class="modal-overlay" id="add-modal" hidden>
+    <div class="modal-card add-card" role="dialog" aria-label="add holdings">
+      <button type="button" class="modal-close" id="add-close" aria-label="close">&times;</button>
+      <h3 class="modal-title">add holdings</h3>
+      <form id="add-form" autocomplete="off">
+        <div class="field">
+          <label for="add-ticker">ticker</label>
+          <input type="text" id="add-ticker" placeholder="AAPL" maxlength="12" required>
+        </div>
+        <div class="field">
+          <label for="add-shares">shares</label>
+          <input type="number" id="add-shares" placeholder="10" step="any" min="0" required>
+        </div>
+        <div class="field">
+          <label for="add-cost">cost basis / share</label>
+          <input type="number" id="add-cost" placeholder="150.00" step="any" min="0" required>
+        </div>
+        <button type="submit" class="btn btn-primary" id="add-submit">add</button>
+      </form>
+      <div class="add-status" id="add-status"></div>
+      <div class="add-recent" id="add-recent"></div>
+    </div>
+  </div>
+
+  <!-- holding detail modal -->
+  <div class="modal-overlay" id="holding-modal" hidden>
+    <div class="modal-card holding-card" id="holding-modal-card" role="dialog" aria-label="holding detail"></div>
+  </div>
 
   <script src="config.js"></script>
   <script src="js/format.js"></script>
