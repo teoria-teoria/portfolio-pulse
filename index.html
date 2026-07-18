@@ -4,6 +4,9 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>portfolio pulse</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -32,7 +35,7 @@
         </div>
         <div>
           <div class="stat-label">total gain/loss</div>
-          <div class="stat-value" id="total-gain">--</div>
+          <div class="stat-value stat-value-lg" id="total-gain">--</div>
         </div>
         <div>
           <div class="stat-label">day change</div>
@@ -56,6 +59,18 @@
       </div>
     </section>
 
+    <section class="panel" aria-label="allocation" id="diversity-panel">
+      <h2>diversity</h2>
+      <p class="panel-note">allocation by current market value. shares times current price, not cost basis.</p>
+      <div class="diversity-wrap">
+        <div class="donut-hold">
+          <canvas id="diversity-chart" width="260" height="260"></canvas>
+        </div>
+        <div id="diversity-legend" class="diversity-legend"></div>
+      </div>
+      <p class="empty" id="diversity-empty" hidden>add holdings and load prices to see your allocation.</p>
+    </section>
+
     <section class="panel" aria-label="performance" id="performance-panel">
       <div class="perf-head">
         <h2>performance</h2>
@@ -73,7 +88,10 @@
     </section>
 
     <section class="panel" aria-label="add a holding">
-      <h2>holdings</h2>
+      <div class="panel-head">
+        <h2>holdings</h2>
+        <button type="button" id="edit-toggle" class="btn btn-ghost btn-sm" hidden>edit</button>
+      </div>
       <form id="holding-form" class="holding-form" autocomplete="off">
         <div class="field">
           <label for="ticker">ticker</label>
@@ -133,5 +151,6 @@
   <script src="js/news.js"></script>
   <script src="js/ai.js"></script>
   <script src="js/performance.js"></script>
+  <script src="js/diversity.js"></script>
 </body>
 </html>

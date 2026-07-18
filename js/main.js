@@ -5,7 +5,8 @@
 const state = {
   holdings: loadHoldings(), // [{ id, ticker, shares, cost }]
   quotes: {},               // ticker -> finnhub quote object
-  editingId: null
+  editingId: null,
+  editMode: false           // portfolio-level edit mode toggled from the top
 };
 
 // elements
@@ -18,6 +19,7 @@ const cancelBtn = document.getElementById("form-cancel");
 const body = document.getElementById("holdings-body");
 const emptyMsg = document.getElementById("holdings-empty");
 const statusLine = document.getElementById("status-line");
+const editToggle = document.getElementById("edit-toggle");
 
 // ---- portfolio math -------------------------------------------------------
 
@@ -46,6 +48,8 @@ function renderRow(h) {
   const g = gain(h);
   const hasQuote = q && typeof q.c === "number";
 
+  const editing = state.editMode;
+
   const priceCell = hasQuote ? fmtMoney(q.c) : '<span class="price-loading">--</span>';
   const dayCell = hasQuote
     ? `<span class="move-chip" style="${moveTintStyle(q.dp)}">${fmtPct(q.dp)}</span>`
@@ -55,21 +59,28 @@ function renderRow(h) {
     ? '<span class="price-loading">--</span>'
     : `<span class="${moveClass(g)}">${fmtSignedMoney(g)}</span>`;
 
+  // in edit mode the shares and cost cells become inputs and a delete shows up.
+  // the ticker stays fixed since it is the key for the quote.
+  const sharesCell = editing
+    ? `<input class="row-input" type="number" step="any" min="0" data-id="${h.id}" data-field="shares" value="${h.shares}">`
+    : `${h.shares}`;
+  const costCell = editing
+    ? `<input class="row-input" type="number" step="any" min="0" data-id="${h.id}" data-field="cost" value="${h.cost}">`
+    : `${fmtMoney(h.cost)}`;
+  const actionsCell = editing
+    ? `<div class="row-actions"><button class="icon-btn danger" data-action="delete" data-id="${h.id}">delete</button></div>`
+    : "";
+
   return `
-    <tr data-id="${h.id}">
+    <tr data-id="${h.id}"${editing ? ' class="is-editing"' : ""}>
       <td class="col-ticker">${h.ticker}</td>
-      <td class="num">${h.shares}</td>
-      <td class="num">${fmtMoney(h.cost)}</td>
+      <td class="num">${sharesCell}</td>
+      <td class="num">${costCell}</td>
       <td class="num">${priceCell}</td>
       <td class="num">${dayCell}</td>
       <td class="num">${valueCell}</td>
       <td class="num">${gainCell}</td>
-      <td class="col-actions">
-        <div class="row-actions">
-          <button class="icon-btn" data-action="edit" data-id="${h.id}">edit</button>
-          <button class="icon-btn danger" data-action="delete" data-id="${h.id}">delete</button>
-        </div>
-      </td>
+      <td class="col-actions">${actionsCell}</td>
     </tr>
   `;
 }
@@ -79,9 +90,14 @@ function renderTable() {
     body.innerHTML = "";
     emptyMsg.hidden = false;
     document.getElementById("holdings-table").style.display = "none";
+    // no rows to edit. drop out of edit mode and hide the toggle.
+    state.editMode = false;
+    editToggle.hidden = true;
+    editToggle.textContent = "edit";
     return;
   }
   emptyMsg.hidden = true;
+  editToggle.hidden = false;
   document.getElementById("holdings-table").style.display = "";
   body.innerHTML = state.holdings.map(renderRow).join("");
   // news for movers gets injected here in the news step.
@@ -137,8 +153,9 @@ function renderSummary() {
 function render() {
   renderTable();
   renderSummary();
-  // the performance graph tracks the same priced state as the summary.
+  // the performance graph and the donut track the same priced state as the summary.
   if (typeof drawPerformance === "function") drawPerformance();
+  if (typeof drawDiversity === "function") drawDiversity();
 }
 
 // ---- form: add / edit / delete -------------------------------------------
@@ -149,19 +166,6 @@ function resetForm() {
   submitBtn.textContent = "add";
   cancelBtn.hidden = true;
   tickerInput.disabled = false;
-}
-
-function startEdit(id) {
-  const h = state.holdings.find((x) => x.id === id);
-  if (!h) return;
-  state.editingId = id;
-  tickerInput.value = h.ticker;
-  sharesInput.value = h.shares;
-  costInput.value = h.cost;
-  submitBtn.textContent = "update";
-  cancelBtn.hidden = false;
-  tickerInput.disabled = true; // ticker is the key for the quote, keep it fixed on edit
-  sharesInput.focus();
 }
 
 function deleteHolding(id) {
@@ -206,8 +210,42 @@ body.addEventListener("click", (e) => {
   const btn = e.target.closest("[data-action]");
   if (!btn) return;
   const id = btn.dataset.id;
-  if (btn.dataset.action === "edit") startEdit(id);
   if (btn.dataset.action === "delete") deleteHolding(id);
+});
+
+// ---- portfolio-level edit mode -------------------------------------------
+
+// read every row input and write the values back to the holdings. shares must
+// be positive and cost non-negative, otherwise that field keeps its old value.
+function commitEdits() {
+  const inputs = body.querySelectorAll(".row-input");
+  const byId = {};
+  inputs.forEach((inp) => {
+    (byId[inp.dataset.id] = byId[inp.dataset.id] || {})[inp.dataset.field] = inp.value;
+  });
+  for (const h of state.holdings) {
+    const v = byId[h.id];
+    if (!v) continue;
+    const shares = parseFloat(v.shares);
+    const cost = parseFloat(v.cost);
+    if (shares > 0) h.shares = shares;
+    if (cost >= 0) h.cost = cost;
+  }
+  saveHoldings(state.holdings);
+}
+
+editToggle.addEventListener("click", () => {
+  if (state.editMode) {
+    commitEdits();
+    state.editMode = false;
+    editToggle.textContent = "edit";
+    setStatus("");
+  } else {
+    state.editMode = true;
+    editToggle.textContent = "done";
+    setStatus("editing. change shares or cost, then click done to save.");
+  }
+  render();
 });
 
 // ---- helpers --------------------------------------------------------------
