@@ -60,17 +60,23 @@ const COMPILED_SENTIMENT = {
   bearish: SENTIMENT_WORDS.bearish.map((w) => new RegExp("\\b" + escapeRegex(w) + "\\b", "i"))
 };
 
-function classify(text) {
+function sentimentCounts(text) {
   const bull = COMPILED_SENTIMENT.bullish.reduce((c, re) => c + (re.test(text) ? 1 : 0), 0);
   const bear = COMPILED_SENTIMENT.bearish.reduce((c, re) => c + (re.test(text) ? 1 : 0), 0);
+  return { bull, bear };
+}
+
+function classify(text) {
+  const { bull, bear } = sentimentCounts(text);
   if (bull > bear) return "bullish";
   if (bear > bull) return "bearish";
   return "neutral";
 }
 
-const SENTIMENT_LABEL = { bullish: "bullish", neutral: "neutral", bearish: "bearish" };
+// bullish reads moss (up), bearish reads brick (down), neutral stays plain ink.
+const SENT_CLASS = { bullish: "up", bearish: "down", neutral: "" };
 
-const WAL_MAX = 8;
+const WAL_MAX = 10;
 
 async function loadWorthALook() {
   const container = document.getElementById("worth-a-look");
@@ -84,19 +90,26 @@ async function loadWorthALook() {
     return;
   }
 
+  const raw = items || [];
   const matched = [];
-  for (const n of items || []) {
+  for (let i = 0; i < raw.length; i++) {
+    const n = raw[i];
     if (!n || !n.headline || !n.url) continue;
     const text = n.headline + " " + (n.summary || "");
     const tag = matchTag(text);
     if (!tag) continue;
+    const { bull, bear } = sentimentCounts(text);
+    const sentiment = bull > bear ? "bullish" : bear > bull ? "bearish" : "neutral";
+    // prominence: how loud the language is, plus how fresh (earlier in the feed).
+    const recency = Math.max(0, (raw.length - i) / raw.length);
+    const prominence = (bull + bear) * 1.5 + recency * 1.1 + 0.4;
     matched.push({
-      tag,
       headline: n.headline,
       url: n.url,
       source: n.source || "",
       summary: n.summary || "",
-      sentiment: classify(text)
+      sentiment,
+      prominence
     });
     if (matched.length >= WAL_MAX) break;
   }
@@ -104,27 +117,44 @@ async function loadWorthALook() {
   renderWorthALook(matched);
 }
 
+// a floating map of headlines. size scales with prominence, sentiment shows as
+// text color, a slight per-item vertical offset breaks the grid. hovering a
+// headline expands a detail card and dims the rest. no pills, no dots, no click
+// to expand. too few headlines to read as a map falls back to a plain list.
 function renderWorthALook(matched) {
   const container = document.getElementById("worth-a-look");
+
   if (matched.length === 0) {
     container.innerHTML = '<p class="empty">nothing in today\'s feed matched the interest tags.</p>';
     return;
   }
-  container.innerHTML = matched
+
+  if (matched.length < 3) {
+    container.innerHTML =
+      '<ul class="wal-list">' +
+      matched
+        .map((m) =>
+          `<li><a href="${m.url}" target="_blank" rel="noopener">${escapeHtml(m.headline)}</a>` +
+          (m.source ? ` <span class="src">${escapeHtml(m.source)}</span>` : "") + "</li>")
+        .join("") +
+      "</ul>";
+    return;
+  }
+
+  const maxProm = matched.reduce((mx, x) => Math.max(mx, x.prominence), 0.0001);
+
+  const nodes = matched
     .map((m, i) => {
-      const s = m.sentiment;
-      const summary = m.summary ? `<p class="wal-summary-text">${escapeHtml(m.summary)}</p>` : "";
+      const size = (0.95 + (m.prominence / maxProm) * 0.95).toFixed(2); // 0.95..1.9rem
+      const jitter = Math.round(Math.sin(i * 1.7) * 7); // -7..7px, deterministic
+      const cls = SENT_CLASS[m.sentiment] || "";
+      const sum = m.summary ? `<p class="wal-pop-sum">${escapeHtml(m.summary)}</p>` : "";
       return `
-      <div class="wal-card s-${s}" data-i="${i}">
-        <button type="button" class="wal-row" aria-expanded="false">
-          <span class="wal-dot s-${s}" title="${SENTIMENT_LABEL[s]}"></span>
-          <span class="wal-headline">${escapeHtml(m.headline)}</span>
-          <span class="wal-tag">${escapeHtml(m.tag)}</span>
-        </button>
-        <div class="wal-detail" hidden>
-          ${summary}
-          <div class="wal-meta">
-            <span class="wal-class s-${s}">${escapeHtml(SENTIMENT_LABEL[s])}</span>
+      <div class="wal-node" style="transform: translateY(${jitter}px);">
+        <a class="wal-node-head ${cls}" href="${m.url}" target="_blank" rel="noopener" style="font-size:${size}rem;">${escapeHtml(m.headline)}</a>
+        <div class="wal-pop">
+          ${sum}
+          <div class="wal-pop-meta">
             ${m.source ? `<span class="src">${escapeHtml(m.source)}</span>` : ""}
             <a href="${m.url}" target="_blank" rel="noopener">read</a>
           </div>
@@ -132,20 +162,9 @@ function renderWorthALook(matched) {
       </div>`;
     })
     .join("");
-}
 
-// expand or collapse a card on click. event delegation on the container so it
-// survives re-renders.
-document.getElementById("worth-a-look").addEventListener("click", (e) => {
-  const row = e.target.closest(".wal-row");
-  if (!row) return;
-  const card = row.closest(".wal-card");
-  const detail = card.querySelector(".wal-detail");
-  const open = detail.hidden;
-  detail.hidden = !open;
-  row.setAttribute("aria-expanded", String(open));
-  card.classList.toggle("is-open", open);
-});
+  container.innerHTML = `<div class="wal-map">${nodes}</div>`;
+}
 
 // ---- helpers --------------------------------------------------------------
 

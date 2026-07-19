@@ -63,7 +63,7 @@ function cardHtml(h) {
   return `
     <button type="button" class="hcard" data-id="${h.id}" style="${cardGlazeStyle(dp)}">
       <span class="hcard-ticker">${h.ticker}</span>
-      <span class="hcard-day">${dayLabel}</span>
+      <span class="hcard-day ${hasQuote ? moveClass(dp) : ""}">${dayLabel}</span>
     </button>`;
 }
 

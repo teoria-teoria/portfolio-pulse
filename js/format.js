@@ -46,24 +46,23 @@ function moveTintStyle(dp) {
   return `background: linear-gradient(135deg, rgba(${rgb}, ${light}), rgba(${rgb}, ${deep})); color: ${fg};`;
 }
 
-// glaze for a holding preview card. a radial orb of green (up) or red (down)
-// from the top corner, deeper with the size of the move, layered over the card
-// color so it adapts to light or dark. neutral when there is no quote yet.
+// glaze for a holding preview card. a whisper of moss (up) or brick (down) from
+// the top, deeper with the size of the move, over the card color. restrained on
+// purpose. the day % itself is colored in the card. neutral with no quote.
 function cardGlazeStyle(dp) {
   if (dp === null || dp === undefined || Number.isNaN(dp)) {
     return "background: var(--card);";
   }
-  const intensity = Math.min(Math.abs(dp) / MOVE_FULL_AT, 1); // 0..1, same scale as the chip
+  const intensity = Math.min(Math.abs(dp) / MOVE_FULL_AT, 1); // 0..1
   const rgb = dp >= 0 ? "var(--up-rgb)" : "var(--down-rgb)";
-  const light = (0.04 + intensity * 0.08).toFixed(3);
-  const deep = (0.16 + intensity * 0.42).toFixed(3);
-  return `background: radial-gradient(120% 120% at 78% 12%, rgba(${rgb}, ${deep}), rgba(${rgb}, ${light}) 65%), var(--card);`;
+  const a = (0.03 + intensity * 0.11).toFixed(3);
+  return `background: linear-gradient(180deg, rgba(${rgb}, ${a}), rgba(${rgb}, 0) 62%), var(--card);`;
 }
 
-// each stock gets its own signature orb-mesh for the detail modal banner. a few
-// radial blobs at deterministic pseudo-random spots, so every ticker looks
-// different with no fixed shape. decorative only, it means nothing. grain is
-// layered on top in css.
+// the signature: a coral -> pink -> periwinkle -> slate color ramp seen through
+// vertical reeded glass. the fine vertical highlight/shadow ribs are the
+// refraction. deterministic per ticker (a slight hue rotation and flute pitch),
+// so each stock reads a little different with no fixed shape. no backdrop blur.
 function tickerGradient(ticker) {
   let hash = 0;
   for (let i = 0; i < ticker.length; i++) hash = (hash * 31 + ticker.charCodeAt(i)) >>> 0;
@@ -71,18 +70,25 @@ function tickerGradient(ticker) {
     const x = Math.sin(hash * 0.0001 + n * 12.9898) * 43758.5453;
     return x - Math.floor(x);
   };
-  const baseHue = hash % 360;
-  const orbs = [];
-  for (let i = 0; i < 4; i++) {
-    const px = Math.round(rand(i * 2) * 100);
-    const py = Math.round(rand(i * 2 + 1) * 100);
-    const hue = (baseHue + i * 42 + Math.round(rand(i + 7) * 40)) % 360;
-    const sat = 62 + Math.round(rand(i + 3) * 22);
-    const lig = 42 + Math.round(rand(i + 5) * 16);
-    const size = 45 + Math.round(rand(i + 9) * 45);
-    orbs.push(`radial-gradient(circle at ${px}% ${py}%, hsl(${hue} ${sat}% ${lig}%), transparent ${size}%)`);
-  }
-  return orbs.join(", ") + `, hsl(${baseHue} 55% 36%)`;
+
+  const off = Math.round(rand(3) * 54) - 27; // rotate the whole ramp -27..27
+  const h1 = (14 + off + 360) % 360;  // coral
+  const h2 = (332 + off + 360) % 360; // pink
+  const h3 = (266 + off + 360) % 360; // periwinkle
+  const h4 = (212 + off + 360) % 360; // slate
+  const angle = 108 + Math.round(rand(7) * 12);
+  const color =
+    `linear-gradient(${angle}deg, ` +
+    `hsl(${h1} 80% 66%), hsl(${h2} 72% 71%), hsl(${h3} 52% 67%), hsl(${h4} 30% 52%))`;
+
+  const pitch = 10 + Math.round(rand(5) * 5); // flute width 10..15px
+  const flute =
+    `repeating-linear-gradient(90deg, ` +
+    `rgba(255,255,255,0.22) 0, rgba(255,255,255,0) ${(pitch * 0.16).toFixed(1)}px, ` +
+    `rgba(0,0,0,0.11) ${(pitch * 0.5).toFixed(1)}px, rgba(255,255,255,0) ${(pitch * 0.84).toFixed(1)}px, ` +
+    `rgba(255,255,255,0.22) ${pitch}px)`;
+
+  return `${flute}, ${color}`;
 }
 
 // yyyy-mm-dd for a date in america/new_york. en-CA gives the iso-ish order.

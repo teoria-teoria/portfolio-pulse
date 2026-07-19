@@ -6,9 +6,9 @@ const divCanvas = document.getElementById("diversity-chart");
 const divLegend = document.getElementById("diversity-legend");
 const divEmpty = document.getElementById("diversity-empty");
 
-// a muted green ramp anchored on the accent. deep forest down to pale sage. not
-// a rainbow. cycles if there are more holdings than colors.
-const DONUT_COLORS = ["#0d5a37", "#16794c", "#3d9169", "#6aac8b", "#97c7b0", "#c3e0d3"];
+// muted jewel tones drawn from the vault palette: pine, brass, slate, umber,
+// teal, oxblood. sits with the ink-navy + brass system. cycles if needed.
+const DONUT_COLORS = ["#1f6b54", "#a97b2e", "#5c6b78", "#8e5a3c", "#3e7b7e", "#8e2f3a"];
 
 function divCssVar(name, fallback) {
   return getComputedStyle(document.documentElement).getPropertyValue(name).trim() || fallback;
@@ -86,9 +86,9 @@ function drawDiversity() {
   const mutedColor = divCssVar("--muted", "#6b7280");
   ctx.textAlign = "center";
   ctx.fillStyle = inkColor;
-  ctx.font = "700 " + Math.round(cssSize * 0.16) + "px " + divCssVar("--sans", "sans-serif");
+  ctx.font = "500 " + Math.round(cssSize * 0.2) + "px " + divCssVar("--serif", "serif");
   ctx.textBaseline = "alphabetic";
-  ctx.fillText(String(entries.length), cx, cy + 2);
+  ctx.fillText(String(entries.length), cx, cy + 4);
   ctx.fillStyle = mutedColor;
   ctx.font = "500 " + Math.round(cssSize * 0.055) + "px " + divCssVar("--sans", "sans-serif");
   ctx.fillText(entries.length === 1 ? "holding" : "holdings", cx, cy + Math.round(cssSize * 0.13));
