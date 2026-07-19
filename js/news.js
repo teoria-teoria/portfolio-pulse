@@ -117,10 +117,10 @@ async function loadWorthALook() {
   renderWorthALook(matched);
 }
 
-// a floating map of headlines. size scales with prominence, sentiment shows as
-// text color, a slight per-item vertical offset breaks the grid. hovering a
-// headline expands a detail card and dims the rest. no pills, no dots, no click
-// to expand. too few headlines to read as a map falls back to a plain list.
+// worth a look sits under a fog: a fixed grid of headline cards, blurred and
+// dimmed until your cursor passes over. the cursor carries a soft feathered
+// light that clears the fog locally and reveals whatever is under it. click a
+// card to open it (summary + read more), click out to close and let it fog over.
 function renderWorthALook(matched) {
   const container = document.getElementById("worth-a-look");
 
@@ -129,41 +129,58 @@ function renderWorthALook(matched) {
     return;
   }
 
-  if (matched.length < 3) {
-    container.innerHTML =
-      '<ul class="wal-list">' +
-      matched
-        .map((m) =>
-          `<li><a href="${m.url}" target="_blank" rel="noopener">${escapeHtml(m.headline)}</a>` +
-          (m.source ? ` <span class="src">${escapeHtml(m.source)}</span>` : "") + "</li>")
-        .join("") +
-      "</ul>";
-    return;
-  }
+  // loudest / freshest first, then a stable grid.
+  matched.sort((a, b) => b.prominence - a.prominence);
 
-  const maxProm = matched.reduce((mx, x) => Math.max(mx, x.prominence), 0.0001);
-
-  const nodes = matched
+  const tiles = matched
     .map((m, i) => {
-      const size = (0.95 + (m.prominence / maxProm) * 0.95).toFixed(2); // 0.95..1.9rem
-      const jitter = Math.round(Math.sin(i * 1.7) * 7); // -7..7px, deterministic
       const cls = SENT_CLASS[m.sentiment] || "";
-      const sum = m.summary ? `<p class="wal-pop-sum">${escapeHtml(m.summary)}</p>` : "";
+      const sum = m.summary ? `<p>${escapeHtml(m.summary)}</p>` : "";
       return `
-      <div class="wal-node" style="transform: translateY(${jitter}px);">
-        <a class="wal-node-head ${cls}" href="${m.url}" target="_blank" rel="noopener" style="font-size:${size}rem;">${escapeHtml(m.headline)}</a>
-        <div class="wal-pop">
+      <button type="button" class="wal-tile ${cls}" data-i="${i}">
+        <span class="wal-tile-head">${escapeHtml(m.headline)}</span>
+        <div class="wal-tile-detail">
           ${sum}
-          <div class="wal-pop-meta">
+          <div class="wal-tile-meta">
             ${m.source ? `<span class="src">${escapeHtml(m.source)}</span>` : ""}
-            <a href="${m.url}" target="_blank" rel="noopener">read</a>
+            <a href="${m.url}" target="_blank" rel="noopener">read more</a>
           </div>
         </div>
-      </div>`;
+      </button>`;
     })
     .join("");
 
-  container.innerHTML = `<div class="wal-map">${nodes}</div>`;
+  container.innerHTML =
+    `<div class="wal-stage" id="wal-stage">
+       <div class="wal-grid">${tiles}</div>
+       <div class="wal-fog"></div>
+     </div>
+     <p class="wal-hint">move across to clear the fog. click a headline to open it.</p>`;
+
+  wireWorthALook();
+}
+
+function wireWorthALook() {
+  const stage = document.getElementById("wal-stage");
+  if (!stage) return;
+
+  stage.addEventListener("mousemove", (e) => {
+    const r = stage.getBoundingClientRect();
+    stage.style.setProperty("--mx", e.clientX - r.left + "px");
+    stage.style.setProperty("--my", e.clientY - r.top + "px");
+  });
+  stage.addEventListener("mouseleave", () => {
+    stage.style.setProperty("--mx", "-999px");
+    stage.style.setProperty("--my", "-999px");
+  });
+  stage.addEventListener("click", (e) => {
+    if (e.target.closest("a")) return; // let read-more navigate
+    const tile = e.target.closest(".wal-tile");
+    stage.querySelectorAll(".wal-tile.is-open").forEach((t) => {
+      if (t !== tile) t.classList.remove("is-open");
+    });
+    if (tile) tile.classList.toggle("is-open");
+  });
 }
 
 // ---- helpers --------------------------------------------------------------

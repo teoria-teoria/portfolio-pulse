@@ -46,49 +46,79 @@ function moveTintStyle(dp) {
   return `background: linear-gradient(135deg, rgba(${rgb}, ${light}), rgba(${rgb}, ${deep})); color: ${fg};`;
 }
 
-// glaze for a holding preview card. a whisper of moss (up) or brick (down) from
-// the top, deeper with the size of the move, over the card color. restrained on
-// purpose. the day % itself is colored in the card. neutral with no quote.
+// glaze for a holding preview card. a wash of pine (up) or oxblood (down) that
+// deepens with the size of the move, over the card color, so you can read how a
+// holding is doing by its color and depth at a glance. neutral with no quote.
 function cardGlazeStyle(dp) {
   if (dp === null || dp === undefined || Number.isNaN(dp)) {
     return "background: var(--card);";
   }
   const intensity = Math.min(Math.abs(dp) / MOVE_FULL_AT, 1); // 0..1
   const rgb = dp >= 0 ? "var(--up-rgb)" : "var(--down-rgb)";
-  const a = (0.03 + intensity * 0.11).toFixed(3);
-  return `background: linear-gradient(180deg, rgba(${rgb}, ${a}), rgba(${rgb}, 0) 62%), var(--card);`;
+  const top = (0.16 + intensity * 0.42).toFixed(3); // clear floor, scales with the move
+  const bot = (0.06 + intensity * 0.18).toFixed(3);
+  return `background: linear-gradient(165deg, rgba(${rgb}, ${top}), rgba(${rgb}, ${bot})), var(--card);`;
 }
 
-// the signature: a coral -> pink -> periwinkle -> slate color ramp seen through
-// vertical reeded glass. the fine vertical highlight/shadow ribs are the
-// refraction. deterministic per ticker (a slight hue rotation and flute pitch),
-// so each stock reads a little different with no fixed shape. no backdrop blur.
-function tickerGradient(ticker) {
+// each stock's detail banner: a gradient in the coral -> pink -> periwinkle ->
+// slate family, but every ticker gets a different treatment so no two look the
+// same. half are pixelated (a blocky mosaic sampled from the ramp), half are a
+// soft gradient with grain (looking through distorted glass). deterministic per
+// ticker. returns { style, cls } for the banner element.
+function tickerBanner(ticker) {
   let hash = 0;
   for (let i = 0; i < ticker.length; i++) hash = (hash * 31 + ticker.charCodeAt(i)) >>> 0;
-  const rand = (n) => {
-    const x = Math.sin(hash * 0.0001 + n * 12.9898) * 43758.5453;
-    return x - Math.floor(x);
-  };
+  let seed = hash;
+  const rand = () => { seed = (seed * 1664525 + 1013904223) >>> 0; return seed / 4294967296; };
 
-  const off = Math.round(rand(3) * 54) - 27; // rotate the whole ramp -27..27
-  const h1 = (14 + off + 360) % 360;  // coral
-  const h2 = (332 + off + 360) % 360; // pink
-  const h3 = (266 + off + 360) % 360; // periwinkle
-  const h4 = (212 + off + 360) % 360; // slate
-  const angle = 108 + Math.round(rand(7) * 12);
-  const color =
-    `linear-gradient(${angle}deg, ` +
-    `hsl(${h1} 80% 66%), hsl(${h2} 72% 71%), hsl(${h3} 52% 67%), hsl(${h4} 30% 52%))`;
+  const off = Math.round(rand() * 54) - 27; // rotate the whole ramp -27..27
+  const stops = [
+    [(14 + off + 360) % 360, 80, 66],   // coral
+    [(332 + off + 360) % 360, 72, 71],  // pink
+    [(266 + off + 360) % 360, 52, 67],  // periwinkle
+    [(212 + off + 360) % 360, 30, 52]   // slate
+  ];
+  const angle = 108 + Math.round(rand() * 22);
 
-  const pitch = 10 + Math.round(rand(5) * 5); // flute width 10..15px
-  const flute =
-    `repeating-linear-gradient(90deg, ` +
-    `rgba(255,255,255,0.22) 0, rgba(255,255,255,0) ${(pitch * 0.16).toFixed(1)}px, ` +
-    `rgba(0,0,0,0.11) ${(pitch * 0.5).toFixed(1)}px, rgba(255,255,255,0) ${(pitch * 0.84).toFixed(1)}px, ` +
-    `rgba(255,255,255,0.22) ${pitch}px)`;
+  if (hash % 2 === 0) {
+    return { style: pixelBannerStyle(stops, rand), cls: "banner-pixel" };
+  }
+  const grad = "linear-gradient(" + angle + "deg, " +
+    stops.map((s) => "hsl(" + s[0] + " " + s[1] + "% " + s[2] + "%)").join(", ") + ")";
+  const sheen = "linear-gradient(102deg, rgba(255,255,255,0.12), rgba(255,255,255,0) 32%, " +
+    "rgba(255,255,255,0.07) 60%, rgba(255,255,255,0) 100%)";
+  return { style: "background:" + sheen + "," + grad + ";", cls: "banner-soft" };
+}
 
-  return `${flute}, ${color}`;
+function hslToRgb(h, s, l) {
+  s /= 100; l /= 100;
+  const k = (n) => (n + h / 30) % 12;
+  const a = s * Math.min(l, 1 - l);
+  const f = (n) => l - a * Math.max(-1, Math.min(k(n) - 3, 9 - k(n), 1));
+  return [Math.round(f(0) * 255), Math.round(f(8) * 255), Math.round(f(4) * 255)];
+}
+
+// a blocky mosaic sampled across the ramp, with per-cell brightness jitter, as a
+// canvas data-uri. near banner size so the squares stay crisp.
+function pixelBannerStyle(stops, rand) {
+  const cols = 16, rows = 5, cell = 28;
+  const cv = document.createElement("canvas");
+  cv.width = cols * cell;
+  cv.height = rows * cell;
+  const ctx = cv.getContext("2d");
+  const rgb = stops.map((s) => hslToRgb(s[0], s[1], s[2]));
+  for (let x = 0; x < cols; x++) {
+    const seg = Math.min((x / (cols - 1)) * 3, 2.999);
+    const i = Math.floor(seg), f = seg - i;
+    const base = [0, 1, 2].map((c) => rgb[i][c] + (rgb[i + 1][c] - rgb[i][c]) * f);
+    for (let y = 0; y < rows; y++) {
+      const j = 0.82 + rand() * 0.36;
+      const px = base.map((v) => Math.max(0, Math.min(255, Math.round(v * j))));
+      ctx.fillStyle = "rgb(" + px[0] + "," + px[1] + "," + px[2] + ")";
+      ctx.fillRect(x * cell, y * cell, cell + 1, cell + 1);
+    }
+  }
+  return "background-image:url(" + cv.toDataURL("image/png") + ");background-size:cover;background-position:center;";
 }
 
 // yyyy-mm-dd for a date in america/new_york. en-CA gives the iso-ish order.

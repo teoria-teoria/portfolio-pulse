@@ -216,10 +216,11 @@ function renderHoldingModal(id) {
     ? "--"
     : `<span class="${moveClass(g)}">${fmtSignedMoney(g)}${gp !== null ? " (" + fmtPct(gp) + ")" : ""}</span>`;
   const valueStr = mv === null ? "--" : fmtMoney(mv);
+  const banner = tickerBanner(h.ticker);
 
   holdingModalCard.innerHTML = `
     <button type="button" class="modal-close" data-action="close" aria-label="close">&times;</button>
-    <div class="hmodal-banner" style="background:${tickerGradient(h.ticker)}">
+    <div class="hmodal-banner ${banner.cls}" style="${banner.style}">
       <span class="hmodal-ticker">${h.ticker}</span>
     </div>
     <div class="hmodal-body">

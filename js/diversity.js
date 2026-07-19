@@ -86,9 +86,9 @@ function drawDiversity() {
   const mutedColor = divCssVar("--muted", "#6b7280");
   ctx.textAlign = "center";
   ctx.fillStyle = inkColor;
-  ctx.font = "500 " + Math.round(cssSize * 0.2) + "px " + divCssVar("--serif", "serif");
+  ctx.font = "700 " + Math.round(cssSize * 0.19) + "px " + divCssVar("--sans", "sans-serif");
   ctx.textBaseline = "alphabetic";
-  ctx.fillText(String(entries.length), cx, cy + 4);
+  ctx.fillText(String(entries.length), cx, cy + 3);
   ctx.fillStyle = mutedColor;
   ctx.font = "500 " + Math.round(cssSize * 0.055) + "px " + divCssVar("--sans", "sans-serif");
   ctx.fillText(entries.length === 1 ? "holding" : "holdings", cx, cy + Math.round(cssSize * 0.13));
