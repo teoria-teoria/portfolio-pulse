@@ -6,9 +6,7 @@ live: https://teoria-teoria.github.io/portfolio-pulse/
 
 ## screenshot
 
-_screenshot placeholder. drop `screenshot.png` in the repo root, then uncomment the line below._
-
-<!-- ![portfolio pulse dashboard](screenshot.png) -->
+![portfolio pulse dashboard](screenshot.png)
 
 ## what it does
 
