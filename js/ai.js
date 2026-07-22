@@ -119,6 +119,47 @@ async function askStockNews(ticker, container) {
 
 // ---- ask box (concise q&a) ------------------------------------------------
 
+// the model knows a great deal about public companies already. the old prompt
+// let it hide behind "i have no live data" for questions like "how was meta's
+// last earnings", which it can answer perfectly well. this one makes answering
+// the default and the caveat the exception, and tells it to lean on the real
+// headlines when the app has any for the ticker being asked about.
+const ASK_SYSTEM = [
+  "you answer investing and finance questions for someone looking at their own portfolio dashboard.",
+  "",
+  "answer from your own knowledge by default. you know a great deal about public companies, their businesses, their financials, their history, and how their past earnings went. use it and be specific. do not open with a refusal, and do not say you lack live data as a way of avoiding a question you can actually answer.",
+  "",
+  "only add a caveat when the question truly depends on something you cannot know: today's price, today's move, this week's news, or anything after your training cutoff. even then, give your best answer first, then note in a few words that you do not have live data and the figure may be stale.",
+  "",
+  "if the message includes recent headlines, they are real and were pulled by this app. ground your answer in them and say what they show.",
+  "",
+  "one to three plain sentences. lowercase is fine. this is general information, not personalized financial advice. do not restate that disclaimer unless the question is actually asking what to buy or sell."
+].join("\n");
+
+// tickers named in the question that this app has already pulled news for.
+// word boundary and case-insensitive, so "how is nvda doing" matches NVDA.
+function newsContextFor(question) {
+  const found = [];
+  for (const c of cachedNewsTickers()) {
+    if (!new RegExp("\\b" + escapeRegex(c.ticker) + "\\b", "i").test(question)) continue;
+    const hit = latestCachedNews(c.ticker);
+    if (hit) found.push(hit);
+  }
+  return found;
+}
+
+// the question, plus any real headlines the app is already holding for the
+// tickers it mentions. no headlines means the question goes through untouched
+// and the model answers from general knowledge.
+function buildAskContent(question, hits) {
+  if (!hits.length) return question;
+  const blocks = hits.map((h) =>
+    "recent headlines for " + h.ticker + ", pulled by this app on " + h.dateStr + ":\n" +
+    h.items.map((n) => "- " + n.headline + (n.source ? " (" + n.source + ")" : "")).join("\n")
+  );
+  return question + "\n\n" + blocks.join("\n\n");
+}
+
 const askForm = document.getElementById("ask-form");
 const askInput = document.getElementById("ask-input");
 const askLog = document.getElementById("ask-log");
@@ -146,12 +187,18 @@ askForm.addEventListener("submit", async (e) => {
 
   askInput.value = "";
   const row = appendAsk(q, "thinking...", false);
+  const hits = newsContextFor(q);
   try {
-    const a = await openaiConcise(
-      "you answer short investing and finance questions in one or two plain sentences. concise and factual, lowercase is fine. this is general information, not personalized financial advice. keep any disclaimer to a few words.",
-      q
-    );
+    const a = await openaiConcise(ASK_SYSTEM, buildAskContent(q, hits));
     row.querySelector(".ask-a").textContent = a;
+    // say when the answer was grounded in headlines this app pulled, so it is
+    // clear which answers lean on real data and which are general knowledge.
+    if (hits.length) {
+      const note = document.createElement("div");
+      note.className = "ask-src";
+      note.textContent = "grounded in headlines pulled for " + hits.map((h) => h.ticker).join(", ");
+      row.appendChild(note);
+    }
   } catch (err) {
     row.querySelector(".ask-a").textContent = "could not get an answer. " + err.message;
   }

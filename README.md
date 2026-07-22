@@ -14,7 +14,7 @@ _screenshot placeholder. drop `screenshot.png` in the repo root, then uncomment 
 
 - add a holding by ticker, shares, and cost basis. it saves to localStorage, so it survives a reload. edit or delete anytime.
 - pulls a live quote per holding and shows gain or loss for each one plus a total. the total value is the big figure at the top. the daily move gets a green or red chip that deepens with the size of the move, so a small move reads as a pale tint and a big one as a saturated fill. outside market hours it labels prices "as of last close" instead of posing as live.
-- a performance graph. one continuous line of total value. the solid part is to date and the dashed part projects the same observed trend an equal window forward. a day, week, or month selector sets the window.
+- a performance graph. one line of total value, ending at now on the right edge. day, week, month, 3mo, or max sets the window. max always runs from june 24, the start date, however far back that gets. the x axis is real dates (jun 24, jul 8) with reference marks at the quarter, half, and three quarter points so you can read a spot on the line against a day. a window of one day reads in hours instead. nothing is projected forward.
 - when a holding moves 2 percent or more in a day, it pulls recent headlines for that ticker so a big move comes with context. with an OpenAI key set it also adds a one-line plain-english read on why it likely moved. those headlines cache per day so a refresh does not burn extra calls.
 - a "worth a look" section scans the general market news feed against three interest tags. qsr, tech and ai, and edge computing. click a headline to expand a card color-coded by the language in it. green for bullish, red for bearish, blue for neutral. it is informational surfacing only, not advice.
 - notes per holding. open a holding and you get a ledger of short timestamped entries about that one stock. "why i bought" as one entry, "sell trigger" as another, written months apart, each stamped with the date. entries save as you type, no save button, with a brief "saved" line so you know it landed. a ticker that has notes carries a small brass mark on its card in the grid.
@@ -55,9 +55,11 @@ Finnhub (https://finnhub.io). free tier. three endpoints.
 - `/company-news` for headlines on a mover.
 - `/news?category=general` for the worth-a-look scan.
 
-the free tier does not include historical candles. `/stock/candle` returns a 403, so the performance graph does not plot a real daily series. it anchors on each holding's live previous close and current price, both real, and carries that observed move across the window. the projection is an estimate, not a forecast.
+the free tier does not include historical candles. `/stock/candle` returns a 403, so the performance graph does not plot a real daily series. the endpoints are real, cost basis at the start and live value now. the shape between them is modeled, not history.
 
-the mover blurb uses OpenAI (gpt-5-nano). it is optional. without a key the app just shows the raw headlines.
+the mover blurb and the ask box use OpenAI (gpt-5-nano). optional. without a key the app just shows the raw headlines.
+
+the ask box answers from the model's own knowledge by default and only flags stale data when the question actually needs something live. when you ask about a ticker the app has already pulled headlines for, those real headlines go into the prompt as context and the answer says it was grounded in them.
 
 no key is in the repo. both keys live in a `config.js` that stays gitignored. to run this yourself, get a free Finnhub key at finnhub.io and add it. the OpenAI key is optional:
 

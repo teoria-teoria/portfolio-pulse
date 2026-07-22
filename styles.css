@@ -291,24 +291,6 @@ input[type="number"] { -moz-appearance: textfield; appearance: textfield; }
 }
 .perf-head .section-title { margin: 0; }
 .perf-right { display: flex; align-items: center; gap: 1.25rem; flex-wrap: wrap; }
-.since-label {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
-  font-size: 0.8rem;
-  color: var(--muted);
-}
-.since-label input[type="date"] {
-  font-family: var(--sans);
-  font-size: 0.8rem;
-  padding: 0.25rem 0.4rem;
-  border: 1px solid var(--line);
-  border-radius: var(--radius-sm);
-  background: transparent;
-  color: var(--ink);
-  outline: none;
-}
-.since-label input[type="date"]:focus { border-color: var(--accent); }
 .tf-select { display: flex; gap: 0.9rem; }
 .tf-btn {
   font-family: var(--sans);
@@ -846,6 +828,7 @@ input[type="number"] { -moz-appearance: textfield; appearance: textfield; }
 .ask-q { font-size: 0.9rem; font-weight: 600; color: var(--ink); }
 .ask-a { font-size: 0.9rem; color: var(--muted); margin-top: 0.25rem; line-height: 1.55; }
 .ask-a.note { color: var(--ink); }
+.ask-src { font-size: 0.74rem; color: var(--faint); margin-top: 0.3rem; }
 #ask-form { display: flex; gap: 0.75rem; align-items: baseline; }
 #ask-form input {
   flex: 1 1 auto;

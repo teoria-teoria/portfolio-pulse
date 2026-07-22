@@ -43,6 +43,40 @@ function setCachedNews(ticker, dateStr, items) {
   }
 }
 
+// every ticker that has news cached in this browser, with the newest cache date
+// held for each. lets the ask box ground an answer in headlines the app already
+// pulled instead of answering blind.
+function cachedNewsTickers() {
+  const byTicker = {};
+  try {
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (!key || key.indexOf(NEWS_PREFIX) !== 0) continue;
+      const rest = key.slice(NEWS_PREFIX.length);
+      const split = rest.lastIndexOf(":");
+      if (split <= 0) continue;
+      const ticker = rest.slice(0, split);
+      const dateStr = rest.slice(split + 1);
+      if (!byTicker[ticker] || byTicker[ticker].dateStr < dateStr) {
+        byTicker[ticker] = { ticker, dateStr };
+      }
+    }
+  } catch (e) {
+    return [];
+  }
+  return Object.keys(byTicker).map((t) => byTicker[t]);
+}
+
+// the most recent cached headlines for one ticker, or null if none were pulled.
+function latestCachedNews(ticker) {
+  const t = String(ticker).toUpperCase();
+  const hit = cachedNewsTickers().find((c) => c.ticker === t);
+  if (!hit) return null;
+  const items = getCachedNews(hit.ticker, hit.dateStr);
+  if (!items || !items.length) return null;
+  return { ticker: hit.ticker, dateStr: hit.dateStr, items };
+}
+
 // ---- notes ----------------------------------------------------------------
 //
 // schema, so later features can build on it without guessing.
