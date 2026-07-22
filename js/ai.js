@@ -66,18 +66,7 @@ async function askStockNews(ticker, container) {
 
   let items = [];
   try {
-    const today = todayET();
-    const cached = getCachedNews(ticker, today);
-    if (cached) {
-      items = cached;
-    } else {
-      const raw = await fetchCompanyNews(ticker, daysAgoET(5), today);
-      items = (raw || [])
-        .filter((n) => n && n.headline && n.url)
-        .slice(0, 4)
-        .map((n) => ({ headline: n.headline, url: n.url, source: n.source || "" }));
-      setCachedNews(ticker, today, items);
-    }
+    items = await getTickerNews(ticker);
   } catch (e) {
     container.innerHTML = `<p class="hm-news-empty">could not load news. ${escapeHtml(e.message)}</p>`;
     return;
@@ -127,37 +116,141 @@ async function askStockNews(ticker, container) {
 const ASK_SYSTEM = [
   "you answer investing and finance questions for someone looking at their own portfolio dashboard.",
   "",
-  "answer from your own knowledge by default. you know a great deal about public companies, their businesses, their financials, their history, and how their past earnings went. use it and be specific. do not open with a refusal, and do not say you lack live data as a way of avoiding a question you can actually answer.",
+  "every message includes their current portfolio, live from the dashboard: every holding, share count, cost basis, price, dollar value, weight as a percent, today's move, and total gain or loss. treat it as fact and use it. never ask what they hold, never ask for tickers or weights, never say you cannot see their portfolio. it is right there in the message.",
   "",
-  "only add a caveat when the question truly depends on something you cannot know: today's price, today's move, this week's news, or anything after your training cutoff. even then, give your best answer first, then note in a few words that you do not have live data and the figure may be stale.",
+  "when they ask you to judge the portfolio, judge it. name the actual tickers and weights. you know what these companies do, so group them into sectors yourself and say where they are concentrated, what overlaps, and what is missing. be concrete: \"NVDA and AAPL are 88% of you and both ride the same ai and consumer hardware cycle\" beats a list of sectors a portfolio could theoretically hold. do not hedge a real observation into uselessness.",
   "",
-  "if the message includes recent headlines, they are real and were pulled by this app. ground your answer in them and say what they show.",
+  "the message may also include real headlines the app pulled, for specific tickers and for the market. ground your answer in them and say what they show. if a holding moved and the headlines explain it, connect the two and name the headline.",
   "",
-  "one to three plain sentences. lowercase is fine. this is general information, not personalized financial advice. do not restate that disclaimer unless the question is actually asking what to buy or sell."
+  "answer from your own knowledge for everything else. you know a great deal about public companies, their businesses, their financials, and how their past earnings went. be specific. do not open with a refusal, and do not use \"i have no live data\" to dodge a question you can actually answer.",
+  "",
+  "only caveat when the question truly needs something you cannot know: a price move the headlines do not cover, or anything after your training cutoff. even then answer first, then note in a few words that the figure may be stale.",
+  "",
+  "keep it tight, two to five plain sentences. lowercase is fine. this is general information, not personalized financial advice, but say that only when they are actually asking what to buy or sell."
 ].join("\n");
 
-// tickers named in the question that this app has already pulled news for.
-// word boundary and case-insensitive, so "how is nvda doing" matches NVDA.
-function newsContextFor(question) {
-  const found = [];
-  for (const c of cachedNewsTickers()) {
-    if (!new RegExp("\\b" + escapeRegex(c.ticker) + "\\b", "i").test(question)) continue;
-    const hit = latestCachedNews(c.ticker);
-    if (hit) found.push(hit);
+// ---- what the model gets to see -------------------------------------------
+
+// the live portfolio, as the dashboard has it right now. this rides along with
+// every question. the model was asking "what do you hold?" while the page was
+// rendering the answer three inches above the input box.
+function portfolioSnapshot() {
+  if (!state.holdings.length) return "my portfolio: empty, nothing added yet.";
+
+  let totalValue = 0, pricedCost = 0, totalCost = 0, dayChange = 0;
+  for (const h of state.holdings) {
+    totalCost += costTotal(h);
+    const mv = marketValue(h);
+    if (mv === null) continue;
+    totalValue += mv;
+    pricedCost += costTotal(h);
+    const q = state.quotes[h.ticker];
+    if (typeof q.pc === "number") dayChange += h.shares * (q.c - q.pc);
   }
-  return found;
+
+  const lines = state.holdings.map((h) => {
+    const q = state.quotes[h.ticker];
+    const mv = marketValue(h);
+    if (mv === null) {
+      return "- " + h.ticker + ": " + h.shares + " sh at " + fmtMoney(h.cost) +
+        " cost basis. no live price in yet.";
+    }
+    const weight = totalValue > 0 ? (mv / totalValue) * 100 : 0;
+    const g = gain(h);
+    const gp = gainPctVal(h);
+    return "- " + h.ticker + ": " + h.shares + " sh, cost basis " + fmtMoney(h.cost) +
+      "/sh, price " + fmtMoney(q.c) +
+      ", value " + fmtMoney(mv) +
+      ", " + weight.toFixed(1) + "% of the portfolio" +
+      ", today " + fmtPct(q.dp) +
+      ", total " + fmtSignedMoney(g) + (gp !== null ? " (" + fmtPct(gp) + ")" : "");
+  });
+
+  const totalGain = totalValue - pricedCost;
+  const totalGainPct = pricedCost > 0 ? (totalGain / pricedCost) * 100 : 0;
+
+  return "my portfolio right now, live from the dashboard:\n" +
+    "total value " + fmtMoney(totalValue) +
+    ", cost basis " + fmtMoney(totalCost) +
+    ", total gain/loss " + fmtSignedMoney(totalGain) + " (" + fmtPct(totalGainPct) + ")" +
+    ", today " + fmtSignedMoney(dayChange) + "\n" +
+    lines.join("\n");
 }
 
-// the question, plus any real headlines the app is already holding for the
-// tickers it mentions. no headlines means the question goes through untouched
-// and the model answers from general knowledge.
-function buildAskContent(question, hits) {
-  if (!hits.length) return question;
-  const blocks = hits.map((h) =>
-    "recent headlines for " + h.ticker + ", pulled by this app on " + h.dateStr + ":\n" +
-    h.items.map((n) => "- " + n.headline + (n.source ? " (" + n.source + ")" : "")).join("\n")
-  );
-  return question + "\n\n" + blocks.join("\n\n");
+// the market headlines the worth-a-look panel is showing.
+function marketHeadlines() {
+  if (!worthALookItems || !worthALookItems.length) return null;
+  return "market headlines the app pulled today:\n" +
+    worthALookItems.slice(0, 10)
+      .map((m) => "- " + m.headline + (m.source ? " (" + m.source + ")" : ""))
+      .join("\n");
+}
+
+// headlines for one ticker, from the day's cache or freshly pulled. shared with
+// the holding modal so both paths hit the same cache and never double-fetch.
+async function getTickerNews(ticker) {
+  const today = todayET();
+  const cached = getCachedNews(ticker, today);
+  if (cached) return cached;
+  const raw = await fetchCompanyNews(ticker, daysAgoET(5), today);
+  const items = (raw || [])
+    .filter((n) => n && n.headline && n.url)
+    .slice(0, 4)
+    .map((n) => ({ headline: n.headline, url: n.url, source: n.source || "" }));
+  setCachedNews(ticker, today, items);
+  return items;
+}
+
+// tickers the question names. limited to ones this app actually knows about,
+// the holdings plus anything already cached, so a stray word like "it" or "on"
+// is never mistaken for a symbol.
+function tickersInQuestion(question) {
+  const known = new Set(state.holdings.map((h) => h.ticker.toUpperCase()));
+  cachedNewsTickers().forEach((c) => known.add(c.ticker));
+  return [...known].filter((t) =>
+    new RegExp("\\b" + escapeRegex(t) + "\\b", "i").test(question));
+}
+
+// ask about a holding and the app goes and gets that ticker's headlines if it
+// does not already have today's. one finnhub call, cached for the rest of the
+// day, so "why is nvda down" can actually be answered from real news.
+async function tickerNewsBlocks(question) {
+  const blocks = [];
+  for (const ticker of tickersInQuestion(question)) {
+    let items = null;
+    try {
+      items = await getTickerNews(ticker);
+    } catch (e) {
+      items = null; // finnhub down or rate limited. carry on without it.
+    }
+    if (!items || !items.length) continue;
+    blocks.push({
+      ticker,
+      text: "recent headlines for " + ticker + ":\n" +
+        items.map((n) => "- " + n.headline + (n.source ? " (" + n.source + ")" : "")).join("\n")
+    });
+  }
+  return blocks;
+}
+
+// the question with everything the app knows bolted underneath it.
+async function buildAskContent(question) {
+  const parts = [question, portfolioSnapshot()];
+  const used = ["your portfolio"];
+
+  const tickerBlocks = await tickerNewsBlocks(question);
+  tickerBlocks.forEach((b) => {
+    parts.push(b.text);
+    used.push(b.ticker + " headlines");
+  });
+
+  const market = marketHeadlines();
+  if (market) {
+    parts.push(market);
+    used.push("market headlines");
+  }
+
+  return { content: parts.join("\n\n"), used };
 }
 
 const askForm = document.getElementById("ask-form");
@@ -187,18 +280,16 @@ askForm.addEventListener("submit", async (e) => {
 
   askInput.value = "";
   const row = appendAsk(q, "thinking...", false);
-  const hits = newsContextFor(q);
   try {
-    const a = await openaiConcise(ASK_SYSTEM, buildAskContent(q, hits));
+    const { content, used } = await buildAskContent(q);
+    const a = await openaiConcise(ASK_SYSTEM, content);
     row.querySelector(".ask-a").textContent = a;
-    // say when the answer was grounded in headlines this app pulled, so it is
-    // clear which answers lean on real data and which are general knowledge.
-    if (hits.length) {
-      const note = document.createElement("div");
-      note.className = "ask-src";
-      note.textContent = "grounded in headlines pulled for " + hits.map((h) => h.ticker).join(", ");
-      row.appendChild(note);
-    }
+    // say what the answer was built on, so it is clear which parts lean on your
+    // real data and which are the model's general knowledge.
+    const note = document.createElement("div");
+    note.className = "ask-src";
+    note.textContent = "read " + used.join(", ");
+    row.appendChild(note);
   } catch (err) {
     row.querySelector(".ask-a").textContent = "could not get an answer. " + err.message;
   }

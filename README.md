@@ -59,7 +59,11 @@ the free tier does not include historical candles. `/stock/candle` returns a 403
 
 the mover blurb and the ask box use OpenAI (gpt-5-nano). optional. without a key the app just shows the raw headlines.
 
-the ask box answers from the model's own knowledge by default and only flags stale data when the question actually needs something live. when you ask about a ticker the app has already pulled headlines for, those real headlines go into the prompt as context and the answer says it was grounded in them.
+the ask box sees your portfolio. every question carries the live holdings, weights, prices, and gains along with it, so "judge my portfolio" or "where am i too concentrated" gets a real answer about your actual tickers instead of a request to paste them in. name a holding and it pulls that ticker's headlines from finnhub too, cached for the day, so "why is nvda down" can be answered off real news. the day's market headlines ride along as well. a line under each answer says what it read.
+
+your notes are not sent. they stay in the browser.
+
+it answers from the model's own knowledge for everything else and only flags stale data when the question actually needs something live.
 
 no key is in the repo. both keys live in a `config.js` that stays gitignored. to run this yourself, get a free Finnhub key at finnhub.io and add it. the OpenAI key is optional:
 

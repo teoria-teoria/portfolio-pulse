@@ -78,6 +78,10 @@ const SENT_CLASS = { bullish: "up", bearish: "down", neutral: "" };
 
 const WAL_MAX = 10;
 
+// the last set of matched market headlines, kept so the ask box can hand the
+// model the same news the page is showing. refreshed whenever the feed reloads.
+let worthALookItems = [];
+
 async function loadWorthALook() {
   const container = document.getElementById("worth-a-look");
   container.innerHTML = '<p class="empty">scanning market news...</p>';
@@ -114,6 +118,7 @@ async function loadWorthALook() {
     if (matched.length >= WAL_MAX) break;
   }
 
+  worthALookItems = matched;
   renderWorthALook(matched);
 }
 
