@@ -374,6 +374,7 @@ input[type="number"] { -moz-appearance: textfield; appearance: textfield; }
   margin-top: 1.5rem;
 }
 .hcard {
+  position: relative;
   display: flex;
   flex-direction: column;
   align-items: flex-start;
@@ -400,6 +401,30 @@ input[type="number"] { -moz-appearance: textfield; appearance: textfield; }
   font-size: 0.9rem;
   color: var(--muted);
   margin-top: auto;
+}
+/* a ticker you have written notes about carries the same brass tick that pins
+   each entry to its spine in the detail view. */
+.hcard-mark {
+  position: absolute;
+  top: 0.95rem;
+  right: 1rem;
+  width: 5px;
+  height: 5px;
+  border-radius: 1px;
+  background: var(--accent);
+}
+
+/* visually hidden, still read out loud */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }
 
 .empty { color: var(--muted); font-size: 0.9rem; padding: 1.5rem 0; text-align: center; }
@@ -467,7 +492,9 @@ input[type="number"] { -moz-appearance: textfield; appearance: textfield; }
   border-radius: var(--radius-sm);
 }
 
-/* holding detail modal — the fluted-glass banner is the signature */
+/* holding detail modal — the fluted-glass banner is the signature. a touch wider
+   than the add popup so the notes ledger gets a readable measure. */
+.holding-card { max-width: 460px; }
 .hmodal-banner {
   position: relative;
   overflow: hidden;
@@ -560,6 +587,200 @@ input[type="number"] { -moz-appearance: textfield; appearance: textfield; }
   padding: 0.2rem 0;
 }
 .hmodal-delete:hover { color: var(--down); text-decoration: underline; }
+
+/* ---- notes: a ledger of timestamped entries, one per holding --------------
+   entries hang off a hairline spine, each pinned with a brass tick. the column
+   runs oldest first, because the order is the point: "why i bought" written in
+   march sitting above "sell trigger" written in april is the story of the
+   position. brass is the app's only accent, so notes borrow it rather than
+   introduce a hue. the filled accent-pale block stays reserved for the ai read. */
+.hnotes { border-top: 1px solid var(--line); padding-top: 1.3rem; }
+.hnotes-head {
+  display: flex;
+  align-items: baseline;
+  gap: 0.6rem;
+  margin-bottom: 1rem;
+}
+.hnotes-title {
+  font-family: var(--serif);
+  font-size: 1.05rem;
+  font-weight: 500;
+  color: var(--ink);
+  letter-spacing: 0;
+  text-transform: none;
+  margin: 0;
+}
+.hnotes-count {
+  margin-left: auto;
+  font-size: 0.76rem;
+  color: var(--faint);
+  font-variant-numeric: tabular-nums;
+}
+
+.hnote-list {
+  list-style: none;
+  margin: 0;
+  padding: 0.15rem 0 0 1.1rem;
+  border-left: 1px solid var(--line);
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+.hnote { position: relative; }
+.hnote::before {
+  content: "";
+  position: absolute;
+  left: -1.1rem;
+  top: 0.45rem;
+  margin-left: -3px;
+  width: 5px;
+  height: 5px;
+  border-radius: 1px;
+  background: var(--accent);
+}
+.hnote-label {
+  font-family: var(--serif);
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: var(--ink);
+  line-height: 1.3;
+}
+.hnote-body {
+  margin-top: 0.25rem;
+  font-size: 0.88rem;
+  line-height: 1.55;
+  color: var(--muted);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.hnote-meta {
+  display: flex;
+  align-items: baseline;
+  gap: 0.7rem;
+  margin-top: 0.4rem;
+  font-size: 0.74rem;
+  color: var(--faint);
+  font-variant-numeric: tabular-nums;
+}
+.hnote-acts {
+  margin-left: auto;
+  display: flex;
+  gap: 0.7rem;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+.hnote:hover .hnote-acts,
+.hnote:focus-within .hnote-acts { opacity: 1; }
+.hnote-act {
+  font-family: var(--sans);
+  font-size: 0.74rem;
+  color: var(--muted);
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+}
+.hnote-act:hover { color: var(--ink); text-decoration: underline; }
+.hnote-act[data-note-action="remove"]:hover { color: var(--down); }
+.hnote-act.is-armed { color: var(--down); text-decoration: underline; }
+
+/* inline editor: the entry body swapped for a field, brass edge while it is live */
+.hnote-edit-area {
+  font-family: var(--sans);
+  font-size: 0.88rem;
+  line-height: 1.55;
+  color: var(--ink);
+  width: 100%;
+  margin-top: 0.25rem;
+  padding: 0.4rem 0.55rem;
+  border: 1px solid var(--accent);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  outline: none;
+  resize: none;
+  overflow: hidden;
+}
+
+/* composer */
+.hnote-composer {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  margin-top: 1.4rem;
+  padding-top: 1.2rem;
+  border-top: 1px solid var(--line);
+}
+.hnote-label-input,
+.hnote-input {
+  font-family: var(--sans);
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--ink);
+  outline: none;
+  transition: border-color 0.15s ease;
+}
+.hnote-label-input { font-size: 0.9rem; padding: 0.45rem 0.6rem; }
+.hnote-input {
+  font-size: 0.9rem;
+  line-height: 1.55;
+  padding: 0.55rem 0.6rem;
+  min-height: 4.6rem;
+  resize: none;
+  overflow: hidden;
+}
+.hnote-label-input:focus,
+.hnote-input:focus { border-color: var(--accent); }
+.hnote-label-input::placeholder,
+.hnote-input::placeholder { color: var(--faint); }
+.hnote-foot { display: flex; align-items: center; gap: 0.75rem; }
+.hnote-foot .btn { margin-left: auto; }
+/* the write is invisible and this modal closes on a backdrop click. the line is
+   how you know what you just typed is safe. it says its piece and fades. */
+.hnote-saved {
+  font-size: 0.76rem;
+  color: var(--accent);
+  opacity: 0;
+  transition: opacity 0.25s ease;
+}
+.hnote-saved.is-on { opacity: 1; }
+.hnote-saved.is-warn { color: var(--down); }
+
+/* empty ledger: an invitation and three ways in */
+.hnote-empty { padding-top: 0.1rem; }
+.hnote-empty p {
+  margin: 0 0 0.9rem;
+  font-size: 0.88rem;
+  line-height: 1.55;
+  color: var(--muted);
+}
+.hnote-starts { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+.hnote-start {
+  font-family: var(--sans);
+  font-size: 0.78rem;
+  color: var(--muted);
+  background: transparent;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  padding: 0.3rem 0.62rem;
+  cursor: pointer;
+  transition: border-color 0.15s ease, color 0.15s ease;
+}
+.hnote-start:hover { border-color: var(--accent); color: var(--accent-deep); }
+
+.hnote-act:focus-visible,
+.hnote-start:focus-visible,
+.hnote-composer .btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hnote-acts { opacity: 1; transition: none; }
+  .hnote-saved { transition: none; }
+}
 
 /* worth a look — a fog you clear with your cursor to reveal a grid of headlines */
 .wal-stage { position: relative; padding: 0.5rem 0 0.25rem; }

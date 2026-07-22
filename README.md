@@ -17,6 +17,35 @@ _screenshot placeholder. drop `screenshot.png` in the repo root, then uncomment 
 - a performance graph. one continuous line of total value. the solid part is to date and the dashed part projects the same observed trend an equal window forward. a day, week, or month selector sets the window.
 - when a holding moves 2 percent or more in a day, it pulls recent headlines for that ticker so a big move comes with context. with an OpenAI key set it also adds a one-line plain-english read on why it likely moved. those headlines cache per day so a refresh does not burn extra calls.
 - a "worth a look" section scans the general market news feed against three interest tags. qsr, tech and ai, and edge computing. click a headline to expand a card color-coded by the language in it. green for bullish, red for bearish, blue for neutral. it is informational surfacing only, not advice.
+- notes per holding. open a holding and you get a ledger of short timestamped entries about that one stock. "why i bought" as one entry, "sell trigger" as another, written months apart, each stamped with the date. entries save as you type, no save button, with a brief "saved" line so you know it landed. a ticker that has notes carries a small brass mark on its card in the grid.
+
+## how notes are stored
+
+one localStorage document per ticker.
+
+```js
+// key: "pp:notes:AAPL"
+{
+  v: 1,                      // schema version
+  ticker: "AAPL",
+  entries: [                 // chronological, oldest first
+    {
+      id: "uuid",
+      label: "why i bought",
+      body: "free text, newlines kept",
+      created: 1753142400000, // epoch ms, the entry's stamp
+      updated: 1753142400000  // equals created until you edit it
+    }
+  ]
+}
+
+// key: "pp:notes-draft:AAPL"
+{ label: "", body: "" }      // the uncommitted composer, cleared once added
+```
+
+keyed by ticker, not by holding id. a thesis belongs to the company, not to one lot of it.
+
+**deleting a holding does not delete its notes.** they stay in storage under the ticker. selling is when the record matters most, and delete is a routine action here, so losing a written thesis to a fix on a share count would be a bad surprise. re-add the ticker and the notes come back. the tradeoff is orphaned keys for stocks you no longer hold, which is cheap and easy to sweep later.
 
 ## which api
 

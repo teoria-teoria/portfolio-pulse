@@ -60,8 +60,14 @@ function cardHtml(h) {
   const hasQuote = q && typeof q.c === "number";
   const dp = hasQuote ? q.dp : null;
   const dayLabel = hasQuote ? fmtPct(dp) : "--";
+  // the same brass tick that pins each note to its spine, so the grid shows you
+  // which positions you have already written about.
+  const mark = hasNotes(h.ticker)
+    ? '<span class="hcard-mark" aria-hidden="true"></span><span class="sr-only">has notes</span>'
+    : "";
   return `
     <button type="button" class="hcard" data-id="${h.id}" style="${cardGlazeStyle(dp)}">
+      ${mark}
       <span class="hcard-ticker">${h.ticker}</span>
       <span class="hcard-day ${hasQuote ? moveClass(dp) : ""}">${dayLabel}</span>
     </button>`;
@@ -128,8 +134,11 @@ function render() {
   // the graph and the donut track the same priced state as the summary.
   if (typeof drawPerformance === "function") drawPerformance();
   if (typeof drawDiversity === "function") drawDiversity();
-  // keep an open modal in sync with edits and price updates.
-  if (state.modalId) renderHoldingModal(state.modalId);
+  // keep an open modal in sync with edits and price updates, unless you are
+  // typing in it. a price refresh landing mid-sentence would rebuild the modal
+  // under the caret and drop what you were writing. buttons do not hold text,
+  // so a click on save or delete still re-renders normally.
+  if (state.modalId && !isTypingInModal()) renderHoldingModal(state.modalId);
 }
 
 // ---- add popup ------------------------------------------------------------
@@ -243,8 +252,11 @@ function renderHoldingModal(id) {
       </div>
       <button type="button" class="ask-news-btn" data-action="ask-news">ask ai for recent news on ${h.ticker}</button>
       <div class="hmodal-news" id="hm-news"></div>
+      <section class="hnotes" id="hm-notes" aria-label="notes on ${h.ticker}"></section>
       <button type="button" class="hmodal-delete" data-action="delete">delete holding</button>
     </div>`;
+
+  if (typeof mountNotes === "function") mountNotes(h.ticker);
 }
 
 function saveModalEdits(id) {
@@ -299,6 +311,14 @@ document.addEventListener("keydown", (e) => {
 function setStatus(msg, isError) {
   statusLine.textContent = msg;
   statusLine.classList.toggle("error", !!isError);
+}
+
+// is the caret sitting in a text field inside the open holding modal.
+function isTypingInModal() {
+  const el = document.activeElement;
+  if (!el || !holdingModalCard.contains(el)) return false;
+  const tag = el.tagName;
+  return tag === "TEXTAREA" || tag === "INPUT" || el.isContentEditable;
 }
 
 function cryptoId() {

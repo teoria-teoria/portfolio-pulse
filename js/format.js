@@ -121,6 +121,20 @@ function pixelBannerStyle(stops, rand) {
   return "background-image:url(" + cv.toDataURL("image/png") + ");background-size:cover;background-position:center;";
 }
 
+// compact stamp for a note entry. lowercased to sit with the rest of the ui, and
+// the year is dropped when it is the current one so the common case stays short.
+function fmtNoteTime(ms) {
+  const d = new Date(ms);
+  if (Number.isNaN(d.getTime())) return "";
+  const sameYear = d.getFullYear() === new Date().getFullYear();
+  const dateOpts = sameYear
+    ? { month: "short", day: "numeric" }
+    : { month: "short", day: "numeric", year: "numeric" };
+  const date = d.toLocaleDateString("en-US", dateOpts);
+  const time = d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
+  return (date + " · " + time).toLowerCase();
+}
+
 // yyyy-mm-dd for a date in america/new_york. en-CA gives the iso-ish order.
 function isoDateET(date) {
   return new Intl.DateTimeFormat("en-CA", {
